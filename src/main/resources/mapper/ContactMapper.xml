@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ticket.system.mapper.ContactMapper">
+    <!-- ================== 结果映射 ================== -->
+    <resultMap id="ContactResultMap" type="com.ticket.system.entity.Contact">
+        <id     property="id"         column="id"/>
+        <result property="userId"     column="user_id"/>
+        <result property="name"       column="name"/>
+        <result property="phone"      column="phone"/>
+        <result property="idCard"     column="id_card"/>
+        <result property="type"       column="type"/>
+        <result property="isDefault"  column="is_default"/>
+        <result property="status"     column="status"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <!-- ================== 查询联系人列表 ================== -->
+    <select id="selectByUserId" resultMap="ContactResultMap">
+        SELECT *
+        FROM contact
+        WHERE user_id = #{userId}
+          AND status = 1
+        ORDER BY is_default DESC, id DESC
+    </select>
+
+    <!-- ================== 根据用户+联系人ID查询 ================== -->
+    <select id="selectByUserIdAndContactId" resultMap="ContactResultMap">
+        SELECT *
+        FROM contact
+        WHERE user_id = #{userId}
+          AND id = #{contactId}
+          AND status = 1
+        LIMIT 1
+    </select>
+
+    <!-- ================== 查询默认联系人 ================== -->
+    <select id="selectDefault" resultMap="ContactResultMap">
+        SELECT *
+        FROM contact
+        WHERE user_id = #{userId}
+          AND is_default = 1
+          AND status = 1
+        LIMIT 1
+    </select>
+
+    <!-- ================== 新增联系人 ================== -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO contact
+        (
+            user_id,
+            name,
+            phone,
+            id_card,
+            type
+        )
+        VALUES
+            (
+                #{userId},
+                #{name},
+                #{phone},
+                #{idCard},
+                #{type}
+            )
+    </insert>
+
+    <!-- ================== 软删除联系人 ================== -->
+    <update id="deleteByUserIdAndContactId">
+        UPDATE contact
+        SET status = 0,
+            update_time = NOW()
+        WHERE user_id = #{userId}
+          AND id = #{contactId}
+          AND status = 1
+    </update>
+
+    <!-- ================== 更新联系人（主要用于设默认） ================== -->
+    <update id="update">
+        UPDATE contact
+        <set>
+            <if test="name != null">name = #{name},</if>
+            <if test="phone != null">phone = #{phone},</if>
+            <if test="idCard != null">id_card = #{idCard},</if>
+            <if test="type != null">type = #{type},</if>
+            <if test="isDefault != null">is_default = #{isDefault},</if>
+            update_time = NOW()
+        </set>
+        WHERE id = #{id}
+        AND user_id = #{userId}
+        AND status = 1
+    </update>
+</mapper>

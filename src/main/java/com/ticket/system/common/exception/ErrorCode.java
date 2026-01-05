@@ -47,7 +47,12 @@ public enum ErrorCode {
     SEAT_OCCUPIED(7001, "座位已被占用"),
     SEAT_LOCK_FIRST(7004,"请先锁定座位"),
     TRAIN_NOT_EXIST(7002, "列车不存在"),
-    STATION_NOT_EXIST(7003, "车站不存在");
+    STATION_NOT_EXIST(7003, "车站不存在"),
+
+    //联系人逻辑错误
+    CONTACT_ADD_ERROR(8001, "添加用户失败"),
+    CONTACT_USER_NULL_ERROR(8003, "添加用户失败"),
+    CONTACT_DELETE_ERROR(8002, "删除联系人失败");
 
     private final int code;
     private final String message;
