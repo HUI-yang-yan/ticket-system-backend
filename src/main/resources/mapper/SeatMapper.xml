@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ticket.system.mapper.SeatMapper">
+
+    <resultMap id="BaseResultMap" type="com.ticket.system.entity.Seat">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="carriage_id" property="carriageId" jdbcType="BIGINT"/>
+        <result column="seat_number" property="seatNumber" jdbcType="VARCHAR"/>
+        <result column="seat_type" property="seatType" jdbcType="VARCHAR"/>
+        <result column="row_num" property="rowNum" jdbcType="INTEGER"/>
+        <result column="col_num" property="colNum" jdbcType="INTEGER"/>
+        <result column="status" property="status" jdbcType="TINYINT"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.ticket.system.entity.Seat" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO seat (
+            carriage_id, seat_number, seat_type, row_num, col_num, status, create_time
+        ) VALUES (
+                     #{carriageId}, #{seatNumber}, #{seatType}, #{rowNum}, #{colNum}, #{status}, #{createTime}
+                 )
+    </insert>
+
+    <update id="update" parameterType="com.ticket.system.entity.Seat">
+        UPDATE seat
+        <set>
+            <if test="carriageId != null">carriage_id = #{carriageId},</if>
+            <if test="seatNumber != null">seat_number = #{seatNumber},</if>
+            <if test="seatType != null">seat_type = #{seatType},</if>
+            <if test="rowNum != null">row_num = #{rowNum},</if>
+            <if test="colNum != null">col_num = #{colNum},</if>
+            <if test="status != null">status = #{status},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <delete id="delete" parameterType="java.lang.Long">
+        DELETE FROM seat WHERE id = #{id}
+    </delete>
+
+    <select id="selectById" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT *
+        FROM seat
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectByCarriageId" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT *
+        FROM seat
+        WHERE carriage_id = #{carriageId}
+        ORDER BY row_num ASC, col_num ASC
+    </select>
+
+    <select id="selectByCarriageAndNumber" resultMap="BaseResultMap">
+        SELECT *
+        FROM seat
+        WHERE carriage_id = #{carriageId} AND seat_number = #{seatNumber}
+    </select>
+
+    <select id="selectAvailableSeats" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT *
+        FROM seat
+        WHERE carriage_id = #{carriageId} AND status = 1
+        ORDER BY row_num ASC, col_num ASC
+    </select>
+
+    <update id="updateSeatStatus">
+        UPDATE seat
+        SET status = #{status}
+        WHERE id = #{id}
+    </update>
+
+    <select id="selectByTrainAndDate" resultMap="BaseResultMap">
+        SELECT s.*
+        FROM seat s
+                 INNER JOIN carriage c ON s.carriage_id = c.id
+        WHERE c.train_id = #{trainId}
+          AND NOT EXISTS (
+            SELECT 1 FROM order_seat os
+                              INNER JOIN `order` o ON os.order_id = o.id
+            WHERE os.seat_id = s.id
+              AND o.departure_date = #{departureDate}
+              AND o.order_status IN (0, 1)
+        )
+        ORDER BY c.carriage_index, s.row_num, s.col_num
+    </select>
+</mapper>

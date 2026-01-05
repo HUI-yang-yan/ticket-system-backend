@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ticket.system.mapper.TicketInventoryMapper">
+
+    <resultMap id="BaseResultMap" type="com.ticket.system.entity.TicketInventory">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="train_id" property="trainId" jdbcType="BIGINT"/>
+        <result column="departure_date" property="departureDate" jdbcType="DATE"/>
+        <result column="seat_type" property="seatType" jdbcType="VARCHAR"/>
+        <result column="total_count" property="totalCount" jdbcType="INTEGER"/>
+        <result column="available_count" property="availableCount" jdbcType="INTEGER"/>
+        <result column="version" property="version" jdbcType="INTEGER"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+        <result column="update_time" property="updateTime" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.ticket.system.entity.TicketInventory" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO ticket_inventory (
+            train_id, departure_date, seat_type, total_count,
+            available_count, version, create_time, update_time
+        ) VALUES (
+                     #{trainId}, #{departureDate}, #{seatType}, #{totalCount},
+                     #{availableCount}, #{version}, #{createTime}, #{updateTime}
+                 )
+    </insert>
+
+    <update id="update" parameterType="com.ticket.system.entity.TicketInventory">
+        UPDATE ticket_inventory
+        <set>
+            <if test="trainId != null">train_id = #{trainId},</if>
+            <if test="departureDate != null">departure_date = #{departureDate},</if>
+            <if test="seatType != null">seat_type = #{seatType},</if>
+            <if test="totalCount != null">total_count = #{totalCount},</if>
+            <if test="availableCount != null">available_count = #{availableCount},</if>
+            version = version + 1,
+            update_time = NOW()
+        </set>
+        WHERE id = #{id} AND version = #{version}
+    </update>
+
+    <delete id="delete" parameterType="java.lang.Long">
+        DELETE FROM ticket_inventory WHERE id = #{id}
+    </delete>
+
+    <select id="selectById" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT *
+        FROM ticket_inventory
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectByTrainAndDateAndType" resultMap="BaseResultMap">
+        SELECT *
+        FROM ticket_inventory
+        WHERE train_id = #{trainId}
+        AND departure_date = #{departureDate}
+        AND seat_type = #{seatType}
+    </select>
+
+    <select id="selectByTrainAndDate" resultMap="BaseResultMap">
+        SELECT *
+        FROM ticket_inventory
+        WHERE train_id = #{trainId}
+        AND departure_date = #{departureDate}
+    </select>
+
+    <update id="reduceInventory">
+        UPDATE ticket_inventory
+        SET available_count = #{availableCount},
+            version = version + 1,
+            update_time = NOW()
+        WHERE id = #{id} AND version = #{version} AND available_count >= #{availableCount}
+    </update>
+
+    <update id="increaseInventory">
+        UPDATE ticket_inventory
+        SET available_count = #{availableCount},
+            version = version + 1,
+            update_time = NOW()
+        WHERE id = #{id} AND version = #{version} AND available_count + #{availableCount} &lt;= total_count
+    </update>
+
+    <select id="selectForUpdate" resultMap="BaseResultMap">
+        SELECT *
+        FROM ticket_inventory
+        WHERE train_id = #{trainId}
+        AND departure_date = #{departureDate}
+        AND seat_type = #{seatType}
+        FOR UPDATE
+    </select>
+    <select id="selectAll" resultType="com.ticket.system.entity.TicketInventory">
+        select * from ticket_system.ticket_inventory;
+    </select>
+</mapper>

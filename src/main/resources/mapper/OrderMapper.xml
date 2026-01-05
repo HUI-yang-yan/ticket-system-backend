@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ticket.system.mapper.OrderMapper">
+
+    <resultMap id="BaseResultMap" type="com.ticket.system.entity.Order">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="order_number" property="orderNumber" jdbcType="VARCHAR"/>
+        <result column="user_id" property="userId" jdbcType="BIGINT"/>
+        <result column="train_id" property="trainId" jdbcType="BIGINT"/>
+        <result column="departure_station_id" property="departureStationId" jdbcType="BIGINT"/>
+        <result column="arrival_station_id" property="arrivalStationId" jdbcType="BIGINT"/>
+        <result column="departure_date" property="departureDate" jdbcType="DATE"/>
+        <result column="departure_time" property="departureTime" jdbcType="TIMESTAMP"/>
+        <result column="arrival_time" property="arrivalTime" jdbcType="TIMESTAMP"/>
+        <result column="seat_type" property="seatType" jdbcType="VARCHAR"/>
+        <result column="passenger_id_card" property="passengerIdCard" jdbcType="VARCHAR"/>
+        <result column="passenger_real_name" property="passengerRealName" jdbcType="VARCHAR"/>
+        <result column="ticket_price" property="ticketPrice" jdbcType="DECIMAL"/>
+        <result column="order_status" property="orderStatus" jdbcType="TINYINT"/>
+        <result column="pay_status" property="payStatus" jdbcType="TINYINT"/>
+        <result column="pay_time" property="payTime" jdbcType="TIMESTAMP"/>
+        <result column="expire_time" property="expireTime" jdbcType="TIMESTAMP"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+        <result column="update_time" property="updateTime" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.ticket.system.entity.Order" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO `order` (
+            order_number, user_id, train_id, departure_station_id, arrival_station_id,
+            departure_date, departure_time, arrival_time, seat_type, passenger_id_card,
+            passenger_real_name, ticket_price, order_status, pay_status, pay_time,
+            expire_time, create_time, update_time
+        ) VALUES (
+                     #{orderNumber}, #{userId}, #{trainId}, #{departureStationId}, #{arrivalStationId},
+                     #{departureDate}, #{departureTime}, #{arrivalTime}, #{seatType}, #{passengerIdCard},
+                     #{passengerRealName}, #{ticketPrice}, #{orderStatus}, #{payStatus}, #{payTime},
+                     #{expireTime}, #{createTime}, #{updateTime}
+                 )
+    </insert>
+
+    <update id="update" parameterType="com.ticket.system.entity.Order">
+        UPDATE `order`
+        <set>
+            <if test="orderNumber != null">order_number = #{orderNumber},</if>
+            <if test="userId != null">user_id = #{userId},</if>
+            <if test="trainId != null">train_id = #{trainId},</if>
+            <if test="departureStationId != null">departure_station_id = #{departureStationId},</if>
+            <if test="arrivalStationId != null">arrival_station_id = #{arrivalStationId},</if>
+            <if test="departureDate != null">departure_date = #{departureDate},</if>
+            <if test="departureTime != null">departure_time = #{departureTime},</if>
+            <if test="arrivalTime != null">arrival_time = #{arrivalTime},</if>
+            <if test="seatType != null">seat_type = #{seatType},</if>
+            <if test="passengerIdCard != null">passenger_id_card = #{passengerIdCard},</if>
+            <if test="passengerRealName != null">passenger_real_name = #{passengerRealName},</if>
+            <if test="ticketPrice != null">ticket_price = #{ticketPrice},</if>
+            <if test="orderStatus != null">order_status = #{orderStatus},</if>
+            <if test="payStatus != null">pay_status = #{payStatus},</if>
+            <if test="payTime != null">pay_time = #{payTime},</if>
+            <if test="expireTime != null">expire_time = #{expireTime},</if>
+            update_time = NOW()
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <delete id="delete" parameterType="java.lang.Long">
+        DELETE FROM `order` WHERE id = #{id}
+    </delete>
+
+    <select id="selectById" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT *
+        FROM `order`
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectByOrderNumber" parameterType="java.lang.String" resultMap="BaseResultMap">
+        SELECT *
+        FROM `order`
+        WHERE order_number = #{orderNumber}
+    </select>
+
+    <select id="selectByUserId" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT *
+        FROM `order`
+        WHERE user_id = #{userId}
+        ORDER BY create_time DESC
+    </select>
+
+    <select id="selectByTrainAndDate" resultMap="BaseResultMap">
+        SELECT *
+        FROM `order`
+        WHERE train_id = #{trainId}
+        AND DATE(departure_date) = #{departureDate}
+        ORDER BY create_time DESC
+    </select>
+
+    <select id="selectByStatus" parameterType="java.lang.Integer" resultMap="BaseResultMap">
+        SELECT *
+        FROM `order`
+        WHERE order_status = #{status}
+        ORDER BY create_time DESC
+    </select>
+
+    <select id="selectExpiredOrders" resultMap="BaseResultMap">
+        SELECT *
+        FROM `order`
+        WHERE order_status = 0
+        AND expire_time &lt;= #{currentTime}
+    </select>
+
+    <update id="updateOrderStatus">
+        UPDATE `order`
+        SET order_status = #{orderStatus},
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <update id="updatePayStatus">
+        UPDATE `order`
+        SET pay_status = #{payStatus},
+            pay_time = CASE WHEN #{payStatus} = 1 THEN NOW() ELSE pay_time END,
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <update id="cancelOrder">
+        UPDATE `order`
+        SET order_status = 2,
+            update_time = NOW()
+        WHERE id = #{id} AND order_status = 0
+    </update>
+</mapper>

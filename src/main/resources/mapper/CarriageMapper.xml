@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ticket.system.mapper.CarriageMapper">
+
+    <resultMap id="BaseResultMap" type="com.ticket.system.entity.Carriage">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="train_id" property="trainId" jdbcType="BIGINT"/>
+        <result column="carriage_index" property="carriageIndex" jdbcType="INTEGER"/>
+        <result column="carriage_type" property="carriageType" jdbcType="VARCHAR"/>
+        <result column="seat_count" property="seatCount" jdbcType="INTEGER"/>
+        <result column="row_count" property="rowCount" jdbcType="INTEGER"/>
+        <result column="column_count" property="columnCount" jdbcType="INTEGER"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.ticket.system.entity.Carriage" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO carriage (
+            train_id, carriage_index, carriage_type, seat_count,
+            row_count, column_count, create_time
+        ) VALUES (
+                     #{trainId}, #{carriageIndex}, #{carriageType}, #{seatCount},
+                     #{rowCount}, #{columnCount}, #{createTime}
+                 )
+    </insert>
+
+    <update id="update" parameterType="com.ticket.system.entity.Carriage">
+        UPDATE carriage
+        <set>
+            <if test="trainId != null">train_id = #{trainId},</if>
+            <if test="carriageIndex != null">carriage_index = #{carriageIndex},</if>
+            <if test="carriageType != null">carriage_type = #{carriageType},</if>
+            <if test="seatCount != null">seat_count = #{seatCount},</if>
+            <if test="rowCount != null">row_count = #{rowCount},</if>
+            <if test="columnCount != null">column_count = #{columnCount},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <delete id="delete" parameterType="java.lang.Long">
+        DELETE FROM carriage WHERE id = #{id}
+    </delete>
+
+    <select id="selectById" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT *
+        FROM carriage
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectByTrainId" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT *
+        FROM carriage
+        WHERE train_id = #{trainId}
+        ORDER BY carriage_index ASC
+    </select>
+
+    <select id="selectByTrainAndIndex" resultMap="BaseResultMap">
+        SELECT *
+        FROM carriage
+        WHERE train_id = #{trainId} AND carriage_index = #{carriageIndex}
+    </select>
+
+    <select id="selectByTrainAndType" resultMap="BaseResultMap">
+        SELECT *
+        FROM carriage
+        WHERE train_id = #{trainId} AND carriage_type = #{carriageType}
+        ORDER BY carriage_index ASC
+    </select>
+</mapper>

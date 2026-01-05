@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ticket.system.mapper.TrainStationMapper">
+
+    <resultMap id="BaseResultMap" type="com.ticket.system.entity.TrainStation">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="train_id" property="trainId" jdbcType="BIGINT"/>
+        <result column="station_id" property="stationId" jdbcType="BIGINT"/>
+        <result column="station_index" property="stationIndex" jdbcType="INTEGER"/>
+        <result column="arrival_time" property="arrivalTime" jdbcType="TIME"/>
+        <result column="departure_time" property="departureTime" jdbcType="TIME"/>
+        <result column="stop_duration" property="stopDuration" jdbcType="INTEGER"/>
+        <result column="distance" property="distance" jdbcType="INTEGER"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+        <result property="stationName" column="station_name"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.ticket.system.entity.TrainStation" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO train_station (
+            train_id, station_id, station_index, arrival_time, departure_time,
+            stop_duration, distance, create_time
+        ) VALUES (
+                     #{trainId}, #{stationId}, #{stationIndex}, #{arrivalTime}, #{departureTime},
+                     #{stopDuration}, #{distance}, #{createTime}
+                 )
+    </insert>
+
+    <update id="update" parameterType="com.ticket.system.entity.TrainStation">
+        UPDATE train_station
+        <set>
+            <if test="trainId != null">train_id = #{trainId},</if>
+            <if test="stationId != null">station_id = #{stationId},</if>
+            <if test="stationIndex != null">station_index = #{stationIndex},</if>
+            <if test="arrivalTime != null">arrival_time = #{arrivalTime},</if>
+            <if test="departureTime != null">departure_time = #{departureTime},</if>
+            <if test="stopDuration != null">stop_duration = #{stopDuration},</if>
+            <if test="distance != null">distance = #{distance},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <delete id="delete" parameterType="java.lang.Long">
+        DELETE FROM train_station WHERE id = #{id}
+    </delete>
+    <delete id="deleteByTrainId">
+        delete from train_station where train_id = #{trainId}
+    </delete>
+
+    <select id="selectById" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT *
+        FROM train_station
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectByTrainAndStation" resultMap="BaseResultMap">
+        SELECT *
+        FROM train_station
+        WHERE train_id = #{trainId} AND station_id = #{stationId}
+    </select>
+
+    <select id="selectByTrainId" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT ts.*,s.station_name
+        FROM train_station ts
+        left join station s on ts.station_id = s.id
+        WHERE train_id = #{trainId}
+        ORDER BY station_index ASC
+    </select>
+
+    <select id="selectByStationId" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT *
+        FROM train_station
+        WHERE station_id = #{stationId}
+        ORDER BY arrival_time ASC
+    </select>
+
+    <select id="selectByTrainAndIndex" resultMap="BaseResultMap">
+        SELECT *
+        FROM train_station
+        WHERE train_id = #{trainId} AND station_index = #{stationIndex}
+    </select>
+
+    <select id="selectTrainRoute" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT ts.*, s.station_name, s.station_code
+        FROM train_station ts
+                 LEFT JOIN station s ON ts.station_id = s.id
+        WHERE ts.train_id = #{trainId}
+        ORDER BY ts.station_index
+    </select>
+    <select id="selectStationIndexByTrainIdAndStationId" resultType="java.lang.Integer">
+        select station_index from train_station
+        where station_id = #{departureStationId} and train_id = #{trainId};
+    </select>
+    <select id="selectByTrainIdAndOrderIndex" resultType="com.ticket.system.entity.TrainStation">
+        select * from train_station
+        where train_id = #{trainId} and
+            station_index between #{startStationIndex} and #{endStationIndex}
+    </select>
+    <select id="selectByTrainAndStationIndex" resultType="com.ticket.system.entity.TrainStation">
+
+        select * from ticket_system.train_station
+        where train_id = #{trainId} and station_index = #{stationIndex}
+    </select>
+</mapper>

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ticket.system.mapper.TrainSegmentStockMapper">
+
+    <select id="selectMinStock" resultType="int">
+        SELECT IFNULL(MIN(tss.stock), 0)
+        FROM train_segment_stock tss
+                 INNER JOIN train_station ts
+                            ON tss.train_id = ts.train_id
+                                AND tss.start_station_id = ts.station_id
+        WHERE tss.train_id = #{trainId}
+          AND tss.travel_date = #{departureDate}
+          AND tss.seat_type = #{seatType}
+          AND ts.station_index >= #{startIndex}
+          AND ts.station_index &lt; #{endIndex}
+    </select>
+    <select id="selectSumPrice" resultType="java.math.BigDecimal">
+        SELECT IFNULL(SUM(tss.price), 0)
+        FROM train_segment_stock tss
+                 INNER JOIN train_station ts
+                            ON tss.train_id = ts.train_id
+                                AND tss.start_station_id = ts.station_id
+        WHERE tss.train_id = #{trainId}
+          AND tss.travel_date = #{travelDate}
+          AND tss.seat_type = #{seatType}
+          AND ts.station_index >= #{startIndex}
+          AND ts.station_index &lt; #{endIndex}
+    </select>
+
+    <insert id="insertBatch">
+        INSERT IGNORE INTO train_segment_stock
+        (train_id, start_station_id, travel_date, seat_type, stock, price)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+            #{item.trainId},
+            #{item.startStationId},
+            #{item.travelDate},
+            #{item.seatType},
+            #{item.stock},
+            #{item.price}
+            )
+        </foreach>
+    </insert>
+
+
+</mapper>

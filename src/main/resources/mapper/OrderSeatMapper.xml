@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ticket.system.mapper.OrderSeatMapper">
+
+    <resultMap id="BaseResultMap" type="com.ticket.system.entity.OrderSeat">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="order_id" property="orderId" jdbcType="BIGINT"/>
+        <result column="seat_id" property="seatId" jdbcType="BIGINT"/>
+        <result column="carriage_index" property="carriageIndex" jdbcType="INTEGER"/>
+        <result column="seat_number" property="seatNumber" jdbcType="VARCHAR"/>
+        <result column="ticket_price" property="ticketPrice" jdbcType="DECIMAL"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.ticket.system.entity.OrderSeat" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO order_seat (
+            order_id, seat_id, carriage_index, seat_number, ticket_price, create_time
+        ) VALUES (
+                     #{orderId}, #{seatId}, #{carriageIndex}, #{seatNumber}, #{ticketPrice}, #{createTime}
+                 )
+    </insert>
+
+    <delete id="delete" parameterType="java.lang.Long">
+        DELETE FROM order_seat WHERE id = #{id}
+    </delete>
+
+    <select id="selectById" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT *
+        FROM order_seat
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectByOrderId" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT *
+        FROM order_seat
+        WHERE order_id = #{orderId}
+    </select>
+
+    <select id="selectBySeatId" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT *
+        FROM order_seat
+        WHERE seat_id = #{seatId}
+    </select>
+
+    <delete id="deleteByOrderId" parameterType="java.lang.Long">
+        DELETE FROM order_seat WHERE order_id = #{orderId}
+    </delete>
+
+    <select id="selectByOrderAndSeat" resultMap="BaseResultMap">
+        SELECT *
+        FROM order_seat
+        WHERE order_id = #{orderId} AND seat_id = #{seatId}
+    </select>
+</mapper>

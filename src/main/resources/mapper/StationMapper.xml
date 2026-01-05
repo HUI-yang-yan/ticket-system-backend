@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ticket.system.mapper.StationMapper">
+
+    <resultMap id="BaseResultMap" type="com.ticket.system.entity.Station">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="station_code" property="stationCode" jdbcType="VARCHAR"/>
+        <result column="station_name" property="stationName" jdbcType="VARCHAR"/>
+        <result column="city" property="city" jdbcType="VARCHAR"/>
+        <result column="province" property="province" jdbcType="VARCHAR"/>
+        <result column="pinyin" property="pinyin" jdbcType="VARCHAR"/>
+        <result column="pinyin_short" property="pinyinShort" jdbcType="VARCHAR"/>
+        <result column="status" property="status" jdbcType="TINYINT"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+        <result column="update_time" property="updateTime" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+
+    <insert id="insert" parameterType="com.ticket.system.entity.Station" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO station (
+            station_code, station_name, city, province, pinyin,
+            pinyin_short, status, create_time, update_time
+        ) VALUES (
+                     #{stationCode}, #{stationName}, #{city}, #{province}, #{pinyin},
+                     #{pinyinShort}, #{status}, #{createTime}, #{updateTime}
+                 )
+    </insert>
+
+    <update id="update" parameterType="com.ticket.system.entity.Station">
+        UPDATE station
+        <set>
+            <if test="stationCode != null">station_code = #{stationCode},</if>
+            <if test="stationName != null">station_name = #{stationName},</if>
+            <if test="city != null">city = #{city},</if>
+            <if test="province != null">province = #{province},</if>
+            <if test="pinyin != null">pinyin = #{pinyin},</if>
+            <if test="pinyinShort != null">pinyin_short = #{pinyinShort},</if>
+            <if test="status != null">status = #{status},</if>
+            update_time = NOW()
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <delete id="delete" parameterType="java.lang.Long">
+        DELETE FROM station WHERE id = #{id}
+    </delete>
+
+    <select id="selectById" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT *
+        FROM station
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectByStationCode" parameterType="java.lang.String" resultMap="BaseResultMap">
+        SELECT *
+        FROM station
+        WHERE station_code = #{stationCode}
+    </select>
+
+    <select id="selectByStationName" parameterType="java.lang.String" resultMap="BaseResultMap">
+        SELECT *
+        FROM station
+        WHERE station_name = #{stationName}
+    </select>
+
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT *
+        FROM station
+        WHERE status = 1
+        ORDER BY pinyin_short
+    </select>
+
+    <select id="selectByCity" parameterType="java.lang.String" resultMap="BaseResultMap">
+        SELECT *
+        FROM station
+        WHERE city = #{city} AND status = 1
+        ORDER BY pinyin_short
+    </select>
+
+    <select id="selectByProvince" parameterType="java.lang.String" resultMap="BaseResultMap">
+        SELECT *
+        FROM station
+        WHERE province = #{province} AND status = 1
+        ORDER BY pinyin_short
+    </select>
+
+    <select id="searchByKeyword" parameterType="java.lang.String" resultMap="BaseResultMap">
+        SELECT *
+        FROM station
+        WHERE status = 1
+        AND (station_name LIKE CONCAT('%', #{keyword}, '%')
+        OR pinyin LIKE CONCAT('%', #{keyword}, '%')
+        OR pinyin_short LIKE CONCAT('%', #{keyword}, '%')
+        OR city LIKE CONCAT('%', #{keyword}, '%'))
+        ORDER BY pinyin_short
+    </select>
+</mapper>

@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ticket.system.mapper.PaymentMapper">
+
+    <resultMap id="BaseResultMap" type="com.ticket.system.entity.Payment">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="order_id" property="orderId" jdbcType="BIGINT"/>
+        <result column="payment_number" property="paymentNumber" jdbcType="VARCHAR"/>
+        <result column="payment_amount" property="paymentAmount" jdbcType="DECIMAL"/>
+        <result column="payment_method" property="paymentMethod" jdbcType="VARCHAR"/>
+        <result column="payment_status" property="paymentStatus" jdbcType="TINYINT"/>
+        <result column="payment_time" property="paymentTime" jdbcType="TIMESTAMP"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+        <result column="update_time" property="updateTime" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.ticket.system.entity.Payment" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO payment (
+            order_id, payment_number, payment_amount, payment_method,
+            payment_status, payment_time, create_time, update_time
+        ) VALUES (
+                     #{orderId}, #{paymentNumber}, #{paymentAmount}, #{paymentMethod},
+                     #{paymentStatus}, #{paymentTime}, #{createTime}, #{updateTime}
+                 )
+    </insert>
+
+    <update id="update" parameterType="com.ticket.system.entity.Payment">
+        UPDATE payment
+        <set>
+            <if test="orderId != null">order_id = #{orderId},</if>
+            <if test="paymentNumber != null">payment_number = #{paymentNumber},</if>
+            <if test="paymentAmount != null">payment_amount = #{paymentAmount},</if>
+            <if test="paymentMethod != null">payment_method = #{paymentMethod},</if>
+            <if test="paymentStatus != null">payment_status = #{paymentStatus},</if>
+            <if test="paymentTime != null">payment_time = #{paymentTime},</if>
+            update_time = NOW()
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <delete id="delete" parameterType="java.lang.Long">
+        DELETE FROM payment WHERE id = #{id}
+    </delete>
+
+    <select id="selectById" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT *
+        FROM payment
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectByPaymentNumber" parameterType="java.lang.String" resultMap="BaseResultMap">
+        SELECT *
+        FROM payment
+        WHERE payment_number = #{paymentNumber}
+    </select>
+
+    <select id="selectByOrderId" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT *
+        FROM payment
+        WHERE order_id = #{orderId}
+    </select>
+
+    <select id="selectByUserId" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT p.*
+        FROM payment p
+                 INNER JOIN `order` o ON p.order_id = o.id
+        WHERE o.user_id = #{userId}
+        ORDER BY p.create_time DESC
+    </select>
+
+    <update id="updatePaymentStatus">
+        UPDATE payment
+        SET payment_status = #{paymentStatus},
+            payment_time = CASE WHEN #{paymentStatus} = 1 THEN NOW() ELSE payment_time END,
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+</mapper>
