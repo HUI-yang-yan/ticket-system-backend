@@ -13,6 +13,7 @@ public class Payment {
     private String paymentMethod;
     private Integer paymentStatus;
     private Date paymentTime;
+    private Integer refundStatus;
     private Date createTime;
     private Date updateTime;
 }

@@ -16,4 +16,10 @@ public interface PaymentMapper {
     Payment selectByOrderId(Long orderId);
     List<Payment> selectByUserId(Long userId);
     int updatePaymentStatus(@Param("id") Long id, @Param("paymentStatus") Integer paymentStatus);
+    /** 原子标记退款中 */
+    int lockRefund(Long orderId);
+
+    int updateRefundSuccess(Long orderId);
+
+    int updateRefundFailed(Long orderId);
 }

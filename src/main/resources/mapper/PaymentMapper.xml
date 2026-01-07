@@ -75,4 +75,25 @@
             update_time = NOW()
         WHERE id = #{id}
     </update>
+
+    <update id="lockRefund">
+        UPDATE payment
+        SET refund_status = 1
+        WHERE order_id = #{orderId}
+          AND refund_status = 0
+          AND payment_status = 1
+    </update>
+
+    <update id="updateRefundSuccess">
+        UPDATE payment
+        SET refund_status = 2
+        WHERE order_id = #{orderId}
+    </update>
+
+    <update id="updateRefundFailed">
+        UPDATE payment
+        SET refund_status = 3
+        WHERE order_id = #{orderId}
+    </update>
+
 </mapper>

@@ -10,8 +10,12 @@ import com.ticket.system.entity.Order;
 import com.ticket.system.entity.Payment;
 import com.ticket.system.mapper.OrderMapper;
 import com.ticket.system.mapper.PaymentMapper;
+import com.ticket.system.message.RefundMessage;
+import com.ticket.system.mq.producer.RefundProducer;
 import com.ticket.system.service.PaymentService;
 import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -19,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.Date;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
@@ -32,6 +37,12 @@ public class PaymentServiceImpl implements PaymentService {
 
     @Autowired
     private SnowflakeIdUtil snowflakeIdUtil;
+
+    @Autowired
+    private RedissonClient redissonClient;
+
+    @Autowired
+    private RefundProducer refundProducer;
 
     @Override
     @Transactional
@@ -152,28 +163,41 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     @Transactional
     public boolean refundPayment(Long orderId) {
-        Payment payment = paymentMapper.selectByOrderId(orderId);
-        if (payment == null) {
-            throw new BusinessException(ErrorCode.PAYMENT_FAILED.getCode(), "支付记录不存在");
+
+        String lockKey = "refund:order:" + orderId;
+        RLock lock = redissonClient.getLock(lockKey);
+
+        boolean locked = false;
+        try {
+            locked = lock.tryLock(0, 30, TimeUnit.SECONDS);
+            if (!locked) {
+                refundProducer.send(new RefundMessage(orderId, "orderId" + orderId,0));
+                return true;
+            }
+
+            Payment payment = paymentMapper.selectByOrderId(orderId);
+            if (payment == null || payment.getPaymentStatus() != 1) {
+                return true;
+            }
+
+            int updated = paymentMapper.lockRefund(orderId);
+            if (updated == 0) {
+                return true;
+            }
+
+            paymentMapper.updateRefundSuccess(orderId);
+            orderMapper.updateOrderStatus(orderId,4);
+
+            return true;
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCode.PAYMENT_FAILED.getCode(), e.getMessage());
+        } finally {
+            if (locked) {
+                lock.unlock();
+            }
         }
-
-        // 检查支付状态
-        if (payment.getPaymentStatus() != 1) {
-            throw new BusinessException(ErrorCode.PAYMENT_FAILED.getCode(), "支付状态不允许退款");
-        }
-
-        // TODO: 调用退款接口
-
-        // 更新订单状态为已取消
-        Order order = orderMapper.selectById(orderId);
-        if (order != null) {
-            order.setOrderStatus(OrderConstant.ORDER_STATUS_CANCELLED);
-            order.setUpdateTime(new Date());
-            orderMapper.update(order);
-        }
-
-        return true;
     }
+
 
     @Override
     public void updatePaymentStatus(Long paymentId, Integer status) {

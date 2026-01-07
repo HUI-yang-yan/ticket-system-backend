@@ -1,5 +1,6 @@
 package com.ticket.system.common.exception;
 
+import com.ticket.system.dto.request.RefundRequest;
 import lombok.Getter;
 
 @Getter
@@ -29,6 +30,8 @@ public enum ErrorCode {
     // 支付相关错误 4000-4999
     PAYMENT_FAILED(4001, "支付失败"),
     PAYMENT_AMOUNT_ERROR(4002, "支付金额错误"),
+    PAYMENT_NOT_REFUND(4003, "当前订单不支持退款"),
+    REFUND_RETRY_EXCEEDED(4003, "退款重试次数已达上限"),
 
     // 系统错误 5000-5999
     SYSTEM_ERROR(5001, "系统错误"),

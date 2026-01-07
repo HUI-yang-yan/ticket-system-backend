@@ -13,6 +13,55 @@ import java.util.Map;
 @Configuration
 public class RabbitMQConfig {
 
+    /** 正常退款交换机 */
+    @Bean
+    public DirectExchange refundExchange() {
+        return new DirectExchange("refund.exchange", true, false);
+    }
+
+    /** 延迟交换机 */
+    @Bean
+    public DirectExchange refundDelayExchange() {
+        return new DirectExchange("refund.delay.exchange", true, false);
+    }
+
+    /** 正常退款队列 */
+    @Bean
+    public Queue refundQueue() {
+        return QueueBuilder
+                .durable("refund.queue")
+                .build();
+    }
+
+    /** 延迟退款队列（TTL + DLX） */
+    @Bean
+    public Queue refundDelayQueue() {
+        return QueueBuilder
+                .durable("refund.delay.queue")
+                .withArgument("x-dead-letter-exchange", "refund.exchange")
+                .withArgument("x-dead-letter-routing-key", "refund.key")
+                .withArgument("x-message-ttl", 30_000) // 30秒后重试
+                .build();
+    }
+
+    /** 正常队列绑定 */
+    @Bean
+    public Binding refundBinding() {
+        return BindingBuilder
+                .bind(refundQueue())
+                .to(refundExchange())
+                .with("refund.key");
+    }
+
+    /** 延迟队列绑定 */
+    @Bean
+    public Binding refundDelayBinding() {
+        return BindingBuilder
+                .bind(refundDelayQueue())
+                .to(refundDelayExchange())
+                .with("refund.delay.key");
+    }
+
     // 订单交换机
     @Bean
     public DirectExchange orderExchange() {
@@ -54,6 +103,8 @@ public class RabbitMQConfig {
                 .to(orderExchange())
                 .with("order.delay");
     }
+
+
 
     @Bean
     public Jackson2JsonMessageConverter messageConverter() {
