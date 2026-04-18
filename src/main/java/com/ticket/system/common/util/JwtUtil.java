@@ -85,4 +85,12 @@ public class JwtUtil {
         Claims claims = parseToken(token);
         return (String) claims.get("username");
     }
+
+    /**
+     * 获取Token过期时间戳（毫秒）
+     */
+    public long getExpireTimeFromToken(String token) {
+        Claims claims = parseToken(token);
+        return claims.getExpiration().getTime();
+    }
 }

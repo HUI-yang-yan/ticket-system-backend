@@ -53,6 +53,7 @@ public class TicketServiceImpl implements TicketService {
                 trainMapper.selectByRoute(queryDTO.getDepartureStationId(), queryDTO.getArrivalStationId());
 
         List<TicketInfoDTO> result = new ArrayList<>();
+        boolean hasDate = queryDTO.getDepartureDate() != null;
 
         for (Train train : trains) {
 
@@ -65,31 +66,59 @@ public class TicketServiceImpl implements TicketService {
 
             for (String seatType : getSeatTypes()) {
 
-                String redisKey = String.format(
-                        "ticket:stock:%d:%s:%s:%d-%d",
-                        train.getId(),
-                        queryDTO.getDepartureDate(),
-                        seatType,
-                        startIndex,
-                        endIndex
-                );
-
-                Integer available = (Integer) redisUtil.get(redisKey);
-
-                if (available == null) {
-                    available = trainSegmentStockMapper.selectMinStock(
+                Integer available;
+                if (hasDate) {
+                    String redisKey = String.format(
+                            "ticket:stock:%d:%s:%s:%d-%d",
                             train.getId(),
                             queryDTO.getDepartureDate(),
                             seatType,
                             startIndex,
                             endIndex
                     );
+
+                    available = (Integer) redisUtil.get(redisKey);
+
+                    if (available == null) {
+                        available = trainSegmentStockMapper.selectMinStock(
+                                train.getId(),
+                                queryDTO.getDepartureDate(),
+                                seatType,
+                                startIndex,
+                                endIndex
+                        );
+                        available = Math.max(available, 0);
+                        redisUtil.set(redisKey, available, 5, TimeUnit.MINUTES);
+                    }
+                } else {
+                    available = trainSegmentStockMapper.selectMinStockWithoutDate(
+                            train.getId(),
+                            seatType,
+                            startIndex,
+                            endIndex
+                    );
                     available = Math.max(available, 0);
-                    redisUtil.set(redisKey, available, 5, TimeUnit.MINUTES);
                 }
 
                 if (available > 0) {
                     TicketInfoDTO dto = new TicketInfoDTO();
+                    // 查询区间库存ID
+                    Long segmentStockId;
+                    if (hasDate) {
+                        segmentStockId = trainSegmentStockMapper.selectSegmentStockId(
+                                train.getId(),
+                                queryDTO.getDepartureDate(),
+                                seatType,
+                                startIndex
+                        );
+                    } else {
+                        segmentStockId = trainSegmentStockMapper.selectSegmentStockIdWithoutDate(
+                                train.getId(),
+                                seatType,
+                                startIndex
+                        );
+                    }
+                    dto.setId(segmentStockId);
                     dto.setTrainId(train.getId());
                     dto.setTrainNumber(train.getTrainNumber());
                     dto.setTrainType(train.getTrainType());
@@ -133,25 +162,59 @@ public class TicketServiceImpl implements TicketService {
 
     @Override
     @Transactional
-    public boolean purchaseTicket(Long trainId, Long userId) {
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-        String departureDate = sdf.format(new Date());
-        String seatType = TicketConstant.SEAT_TYPE_SECOND;
+    public boolean purchaseTicket(Long trainId, Long userId, String departureDate, String seatType,
+                                   Long startStationId, Long endStationId) {
+        // 1. 获取分布式锁（按车次+日期+座位类型，防止同一座位类型超卖）
+        String lockKey = RedisConstant.TICKET_LOCK_PREFIX + trainId + ":" + departureDate + ":" + seatType;
+        String lockValue = UUID.randomUUID().toString();
+        try {
+            boolean locked = redisUtil.lock(lockKey, lockValue, 10, TimeUnit.SECONDS);
+            if (!locked) {
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR.getCode(), "系统繁忙，请稍后重试");
+            }
 
-        // 检查是否已锁定
-        String seatLockKey = RedisConstant.TICKET_SEAT_PREFIX + "lock:" + trainId + ":" + departureDate + ":" + userId;
-        Object lockStatus = redisUtil.get(seatLockKey);
-        if (lockStatus == null) {
-            throw new BusinessException(ErrorCode.SEAT_LOCK_FIRST.getCode(), "请先锁定座位");
+            // 2. 查询当前库存（FOR UPDATE 行锁）
+            TicketInventory inventory = ticketInventoryMapper.selectForUpdate(trainId, departureDate, seatType);
+            if (inventory == null) {
+                throw new BusinessException(ErrorCode.STOCK_NOT_ENOUGH.getCode(), "票务信息不存在");
+            }
+
+            // 3. 检查库存是否充足
+            if (inventory.getAvailableCount() <= 0) {
+                throw new BusinessException(ErrorCode.STOCK_NOT_ENOUGH.getCode(), "库存不足");
+            }
+
+            // 4. 扣减库存（乐观锁）
+            int updated = ticketInventoryMapper.reduceInventory(
+                    inventory.getId(),
+                    inventory.getAvailableCount() - 1,
+                    inventory.getVersion());
+            if (updated == 0) {
+                throw new BusinessException(ErrorCode.STOCK_NOT_ENOUGH.getCode(), "库存扣减失败，请重试");
+            }
+
+            // 5. 更新 Redis 缓存（设置key包含起止站信息）
+            String cacheKey = String.format("ticket:stock:%d:%s:%s:%d-%d",
+                    trainId, departureDate, seatType, startStationId, endStationId);
+            redisUtil.set(cacheKey, inventory.getAvailableCount() - 1, 5, TimeUnit.MINUTES);
+
+            // 6. 清理座位锁定信息
+            String seatLockKey = RedisConstant.TICKET_SEAT_PREFIX + "lock:" + trainId + ":" + departureDate + ":" + userId;
+            redisUtil.delete(seatLockKey);
+
+            log.info("购票成功：trainId={}, userId={}, departureDate={}, seatType={}, 剩余库存={}",
+                    trainId, userId, departureDate, seatType, inventory.getAvailableCount() - 1);
+            return true;
+
+        } catch (BusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("购票异常：trainId={}, userId={}", trainId, userId, e);
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR.getCode(), "购票失败：" + e.getMessage());
+        } finally {
+            // 释放分布式锁
+            redisUtil.unlock(lockKey, lockValue);
         }
-
-        // 实际购买逻辑
-        // 这里简化处理，实际应该创建订单等
-
-        // 删除锁定信息
-        redisUtil.delete(seatLockKey);
-
-        return true;
     }
 
     @Override
@@ -190,14 +253,22 @@ public class TicketServiceImpl implements TicketService {
                                    Integer endIndex,
                                    LocalDate departureDate,
                                    String seatType) {
-
-        return trainSegmentStockMapper.selectSumPrice(
-                trainId,
-                departureDate,
-                seatType,
-                startIndex,
-                endIndex
-        );
+        if (departureDate != null) {
+            return trainSegmentStockMapper.selectSumPrice(
+                    trainId,
+                    departureDate,
+                    seatType,
+                    startIndex,
+                    endIndex
+            );
+        } else {
+            return trainSegmentStockMapper.selectSumPriceWithoutDate(
+                    trainId,
+                    seatType,
+                    startIndex,
+                    endIndex
+            );
+        }
     }
 
 

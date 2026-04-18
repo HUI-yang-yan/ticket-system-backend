@@ -35,12 +35,16 @@ public class TicketController {
         return Result.success(ticket);
     }
 
-    @PostMapping("/purchase/{trainId}")
-    public Result<Boolean> purchaseTicket(@PathVariable Long trainId) {
-        log.info("购买车票: trainId={}", trainId);
+    @PostMapping("/purchase")
+    public Result<Boolean> purchaseTicket(@RequestParam Long trainId,
+                                         @RequestParam String departureDate,
+                                         @RequestParam String seatType,
+                                         @RequestParam(required = false) Long startStationId,
+                                         @RequestParam(required = false) Long endStationId) {
+        log.info("购买车票: trainId={}, departureDate={}, seatType={}", trainId, departureDate, seatType);
 
         Long userId = getCurrentUserId();
-        boolean success = ticketService.purchaseTicket(trainId, userId);
+        boolean success = ticketService.purchaseTicket(trainId, userId, departureDate, seatType, startStationId, endStationId);
         return Result.success(success);
     }
 

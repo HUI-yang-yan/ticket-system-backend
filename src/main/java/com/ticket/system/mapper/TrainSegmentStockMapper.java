@@ -21,9 +21,22 @@ public interface TrainSegmentStockMapper {
 
     Integer selectMinStock(Long trainId, LocalDate departureDate, String seatType, Integer startIndex, Integer endIndex);
 
+    Integer selectMinStockWithoutDate(Long trainId, String seatType, Integer startIndex, Integer endIndex);
+
+    Long selectSegmentStockId(Long trainId, LocalDate travelDate, String seatType, Integer startIndex);
+
+    Long selectSegmentStockIdWithoutDate(Long trainId, String seatType, Integer startIndex);
+
     BigDecimal selectSumPrice(
             @Param("trainId") Long trainId,
             @Param("travelDate") LocalDate travelDate,
+            @Param("seatType") String seatType,
+            @Param("startIndex") Integer startIndex,
+            @Param("endIndex") Integer endIndex
+    );
+
+    BigDecimal selectSumPriceWithoutDate(
+            @Param("trainId") Long trainId,
             @Param("seatType") String seatType,
             @Param("startIndex") Integer startIndex,
             @Param("endIndex") Integer endIndex

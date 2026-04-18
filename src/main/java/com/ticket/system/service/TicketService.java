@@ -16,7 +16,8 @@ public interface TicketService {
     List<TicketInfoDTO> queryTickets(TicketQueryDTO queryDTO);
     TicketInfoDTO getTicketDetail(Long ticketId);
     boolean unlockTicket(Long ticketId, Long userId);
-    boolean purchaseTicket(Long ticketId, Long userId);
+    boolean purchaseTicket(Long trainId, Long userId, String departureDate, String seatType,
+                          Long startStationId, Long endStationId);
     void syncTicketInventory();
     void addTicketsByHands(List<Long> ticketIds);
 

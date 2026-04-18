@@ -14,6 +14,56 @@
           AND ts.station_index >= #{startIndex}
           AND ts.station_index &lt; #{endIndex}
     </select>
+
+    <select id="selectMinStockWithoutDate" resultType="int">
+        SELECT IFNULL(MIN(tss.stock), 0)
+        FROM train_segment_stock tss
+                 INNER JOIN train_station ts
+                            ON tss.train_id = ts.train_id
+                                AND tss.start_station_id = ts.station_id
+        WHERE tss.train_id = #{trainId}
+          AND tss.seat_type = #{seatType}
+          AND ts.station_index >= #{startIndex}
+          AND ts.station_index &lt; #{endIndex}
+    </select>
+
+    <select id="selectSegmentStockId" resultType="long">
+        SELECT tss.id
+        FROM train_segment_stock tss
+                 INNER JOIN train_station ts
+                            ON tss.train_id = ts.train_id
+                                AND tss.start_station_id = ts.station_id
+        WHERE tss.train_id = #{trainId}
+          AND tss.travel_date = #{travelDate}
+          AND tss.seat_type = #{seatType}
+          AND ts.station_index = #{startIndex}
+        LIMIT 1
+    </select>
+
+    <select id="selectSegmentStockIdWithoutDate" resultType="long">
+        SELECT tss.id
+        FROM train_segment_stock tss
+                 INNER JOIN train_station ts
+                            ON tss.train_id = ts.train_id
+                                AND tss.start_station_id = ts.station_id
+        WHERE tss.train_id = #{trainId}
+          AND tss.seat_type = #{seatType}
+          AND ts.station_index = #{startIndex}
+        LIMIT 1
+    </select>
+
+    <select id="selectSumPriceWithoutDate" resultType="java.math.BigDecimal">
+        SELECT IFNULL(SUM(tss.price), 0)
+        FROM train_segment_stock tss
+                 INNER JOIN train_station ts
+                            ON tss.train_id = ts.train_id
+                                AND tss.start_station_id = ts.station_id
+        WHERE tss.train_id = #{trainId}
+          AND tss.seat_type = #{seatType}
+          AND ts.station_index >= #{startIndex}
+          AND ts.station_index &lt; #{endIndex}
+    </select>
+
     <select id="selectSumPrice" resultType="java.math.BigDecimal">
         SELECT IFNULL(SUM(tss.price), 0)
         FROM train_segment_stock tss

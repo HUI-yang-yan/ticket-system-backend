@@ -11,10 +11,12 @@ import com.ticket.system.dto.request.OrderCreateDTO;
 import com.ticket.system.dto.response.OrderInfoDTO;
 import com.ticket.system.entity.Order;
 import com.ticket.system.entity.Station;
+import com.ticket.system.entity.TicketInventory;
 import com.ticket.system.entity.Train;
 import com.ticket.system.entity.User;
 import com.ticket.system.mapper.OrderMapper;
 import com.ticket.system.mapper.StationMapper;
+import com.ticket.system.mapper.TicketInventoryMapper;
 import com.ticket.system.mapper.TrainMapper;
 import com.ticket.system.mapper.UserMapper;
 import com.ticket.system.mq.producer.OrderProducer;
@@ -58,6 +60,8 @@ public class OrderServiceImpl implements OrderService {
     private UserMapper userMapper;
     @Autowired
     private PaymentService paymentService;
+    @Autowired
+    private TicketInventoryMapper ticketInventoryMapper;
 
     @Override
     @Transactional
@@ -205,7 +209,26 @@ public class OrderServiceImpl implements OrderService {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR.getCode(), "取消订单失败");
         }
 
-        // TODO: 释放锁定的座位，恢复库存
+        // 释放锁定的座位，恢复库存
+        try {
+            TicketInventory inventory = ticketInventoryMapper.selectForUpdate(
+                    order.getTrainId(),
+                    order.getDepartureDate().toLocalDate().toString(),
+                    order.getSeatType());
+            if (inventory != null) {
+                int updated = ticketInventoryMapper.increaseInventory(
+                        inventory.getId(),
+                        inventory.getAvailableCount() + 1,
+                        inventory.getVersion());
+                if (updated > 0) {
+                    log.info("取消订单库存已恢复: orderId={}, trainId={}, 恢复后库存={}",
+                            orderId, order.getTrainId(), inventory.getAvailableCount() + 1);
+                }
+            }
+        } catch (Exception e) {
+            log.error("取消订单恢复库存异常: orderId={}", orderId, e);
+            // 库存恢复失败不影响取消流程继续执行
+        }
 
         return true;
     }

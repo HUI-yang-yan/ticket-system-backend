@@ -73,6 +73,4 @@ public class TrainController {
         trainService.deleteTrain(id);
         return Result.success("删除列车成功");
     }
-
-
 }

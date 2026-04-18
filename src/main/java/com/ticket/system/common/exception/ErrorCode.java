@@ -20,6 +20,7 @@ public enum ErrorCode {
     TICKET_NOT_EXIST(2001, "车票不存在"),
     TICKET_SOLD_OUT(2002, "车票已售罄"),
     TICKET_QUERY_ERROR(2003, "车票查询失败"),
+    STOCK_NOT_ENOUGH(2004, "库存不足"),
 
     // 订单相关错误 3000-3999
     ORDER_NOT_EXIST(3001, "订单不存在"),

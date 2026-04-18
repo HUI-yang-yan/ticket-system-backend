@@ -26,19 +26,24 @@ public class JwtInterceptor implements HandlerInterceptor {
     @Autowired
     private RedisUtil redisUtil;
 
+    // Token自动续期阈值（分钟），当剩余有效期小于此值时自动续期
+    private static final int TOKEN_RENEW_THRESHOLD_MINUTES = 30;
+
+    // Token续期后新的过期时间（小时）
+    private static final int TOKEN_RENEW_EXPIRE_HOURS = 24;
+
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
         String token = request.getHeader(jwtUtil.getHeader());
 
-//        if (StringUtils.hasText(token)) {
         if (!StringUtils.hasText(token)) {
             throw new BusinessException(
                     ErrorCode.UNAUTHORIZED.getCode(),
                     "未登录或 Token 缺失"
             );
         }
-        try {
 
+        try {
             // 验证Token是否过期
             if (jwtUtil.isTokenExpired(token)) {
                 throw new BusinessException(ErrorCode.TOKEN_EXPIRED.getCode(), "Token已过期");
@@ -61,6 +66,32 @@ public class JwtInterceptor implements HandlerInterceptor {
 
                 // 缓存到Redis
                 redisUtil.set(redisKey, userInfo, 24 * 60 * 60L, java.util.concurrent.TimeUnit.SECONDS);
+            }
+
+            // 检查是否需要自动续期
+            long expireTime = jwtUtil.getExpireTimeFromToken(token);
+            long currentTime = System.currentTimeMillis();
+            long remainingTimeMinutes = (expireTime - currentTime) / (1000 * 60);
+
+            if (remainingTimeMinutes < TOKEN_RENEW_THRESHOLD_MINUTES) {
+                // Token快过期了，自动续期
+                log.debug("Token即将过期，自动续期: userId={}, 剩余{}分钟", userId, remainingTimeMinutes);
+
+                // 生成新Token
+                String newToken = jwtUtil.generateToken(userId, username);
+
+                // 更新Redis缓存
+                String newRedisKey = "user:token:" + newToken;
+                redisUtil.set(newRedisKey, userInfo, TOKEN_RENEW_EXPIRE_HOURS * 60 * 60L, java.util.concurrent.TimeUnit.SECONDS);
+
+                // 删除旧Token的缓存
+                redisUtil.delete(redisKey);
+
+                // 通过Response Header返回新Token
+                response.setHeader("Token-Renew", "true");
+                response.setHeader("Authorization", newToken);
+
+                log.info("Token自动续期成功: userId={}", userId);
             }
 
             // 设置到ThreadLocal
