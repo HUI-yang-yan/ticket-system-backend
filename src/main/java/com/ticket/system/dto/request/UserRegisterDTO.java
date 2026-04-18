@@ -1,7 +1,7 @@
 package com.ticket.system.dto.request;
 
 import lombok.Data;
-import javax.validation.constraints.*;
+import jakarta.validation.constraints.*;
 
 @Data
 public class UserRegisterDTO {

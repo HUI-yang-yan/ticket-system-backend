@@ -1,7 +1,7 @@
 package com.ticket.system.dto.request;
 
 import lombok.Data;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 
 @Data

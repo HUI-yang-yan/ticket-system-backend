@@ -3,7 +3,7 @@ package com.ticket.system.dto.request;
 import lombok.Data;
 import org.springframework.format.annotation.DateTimeFormat;
 
-import javax.validation.constraints.*;
+import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 import java.util.Date;
 
