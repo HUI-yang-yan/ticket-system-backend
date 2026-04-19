@@ -1,38 +1,55 @@
 package com.ticket.system.dto.response;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
-import java.util.Date;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Data
+@Schema(description = "票务配置响应")
 public class TicketInventoryDTO {
 
+    @Schema(description = "配置ID")
     private Long id;
-    private Long trainId;
-    private String trainNumber;
-    @JsonFormat(pattern = "yyyy-MM-dd", timezone = "Asia/Shanghai")
-    private Date departureDate;
-    private String departureDateText;
-    private String seatType;
-    private String seatTypeName;
-    private Integer totalCount;
-    private Integer availableCount;
-    private Integer soldCount;
-    private Integer lockedCount;
-    private Double price;
-    private String priceText;
-    private Integer version;
-    private Date createTime;
-    private Date updateTime;
 
-    // 格式化出发日期
-    public String getDepartureDateText() {
-        if (departureDate == null) {
-            return "";
-        }
-        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd");
-        return sdf.format(departureDate);
-    }
+    @Schema(description = "列车ID")
+    private Long trainId;
+
+    @Schema(description = "车次号")
+    private String trainNumber;
+
+    @Schema(description = "座位类型", example = "SECOND")
+    private String seatType;
+
+    @Schema(description = "座位类型中文名", example = "二等座")
+    private String seatTypeName;
+
+    @Schema(description = "总票数", example = "100")
+    private Integer totalCount;
+
+    @Schema(description = "可用票数", example = "80")
+    private Integer availableCount;
+
+    @Schema(description = "已售票数", example = "20")
+    private Integer soldCount;
+
+    @Schema(description = "票价，单位元", example = "553.50")
+    private BigDecimal price;
+
+    @Schema(description = "版本号，用于乐观锁")
+    private Integer version;
+
+    @Schema(description = "状态 0-正常 1-禁用", example = "0")
+    private Integer status;
+
+    @Schema(description = "创建时间")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Shanghai")
+    private LocalDateTime createTime;
+
+    @Schema(description = "更新时间")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Shanghai")
+    private LocalDateTime updateTime;
 
     // 座位类型中文名称
     public String getSeatTypeName() {
@@ -46,14 +63,6 @@ public class TicketInventoryDTO {
             case "HARD_SEAT": return "硬座";
             default: return "其他";
         }
-    }
-
-    // 格式化价格
-    public String getPriceText() {
-        if (price == null) {
-            return "0.00";
-        }
-        return String.format("%.2f", price);
     }
 
     // 计算售出数量

@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ticket.system.mapper.WaitlistTicketMapper">
+
+    <resultMap id="BaseResultMap" type="com.ticket.system.entity.WaitlistTicket">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="ticket_number" property="ticketNumber" jdbcType="VARCHAR"/>
+        <result column="original_order_number" property="originalOrderNumber" jdbcType="VARCHAR"/>
+        <result column="train_id" property="trainId" jdbcType="BIGINT"/>
+        <result column="start_station_id" property="startStationId" jdbcType="BIGINT"/>
+        <result column="end_station_id" property="endStationId" jdbcType="BIGINT"/>
+        <result column="departure_date" property="departureDate" jdbcType="DATE"/>
+        <result column="seat_type" property="seatType" jdbcType="VARCHAR"/>
+        <result column="carriage_number" property="carriageNumber" jdbcType="VARCHAR"/>
+        <result column="seat_number" property="seatNumber" jdbcType="VARCHAR"/>
+        <result column="price" property="price" jdbcType="DECIMAL"/>
+        <result column="status" property="status" jdbcType="VARCHAR"/>
+        <result column="source" property="source" jdbcType="VARCHAR"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+        <result column="update_time" property="updateTime" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.ticket.system.entity.WaitlistTicket" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO waitlist_ticket (
+            ticket_number, original_order_number, train_id, start_station_id, end_station_id,
+            departure_date, seat_type, carriage_number, seat_number, price, status, source, create_time, update_time
+        ) VALUES (
+                     #{ticketNumber}, #{originalOrderNumber}, #{trainId}, #{startStationId}, #{endStationId},
+                     #{departureDate}, #{seatType}, #{carriageNumber}, #{seatNumber}, #{price}, #{status}, #{source},
+                     #{createTime}, #{updateTime}
+                 )
+    </insert>
+
+    <update id="update" parameterType="com.ticket.system.entity.WaitlistTicket">
+        UPDATE waitlist_ticket
+        <set>
+            <if test="ticketNumber != null">ticket_number = #{ticketNumber},</if>
+            <if test="originalOrderNumber != null">original_order_number = #{originalOrderNumber},</if>
+            <if test="trainId != null">train_id = #{trainId},</if>
+            <if test="startStationId != null">start_station_id = #{startStationId},</if>
+            <if test="endStationId != null">end_station_id = #{endStationId},</if>
+            <if test="departureDate != null">departure_date = #{departureDate},</if>
+            <if test="seatType != null">seat_type = #{seatType},</if>
+            <if test="carriageNumber != null">carriage_number = #{carriageNumber},</if>
+            <if test="seatNumber != null">seat_number = #{seatNumber},</if>
+            <if test="price != null">price = #{price},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="source != null">source = #{source},</if>
+            update_time = NOW()
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <delete id="delete" parameterType="java.lang.Long">
+        DELETE FROM waitlist_ticket WHERE id = #{id}
+    </delete>
+
+    <select id="selectById" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT * FROM waitlist_ticket WHERE id = #{id}
+    </select>
+
+    <select id="selectByTicketNumber" parameterType="java.lang.String" resultMap="BaseResultMap">
+        SELECT * FROM waitlist_ticket WHERE ticket_number = #{ticketNumber}
+    </select>
+
+    <select id="selectByOriginalOrderNumber" parameterType="java.lang.String" resultMap="BaseResultMap">
+        SELECT * FROM waitlist_ticket WHERE original_order_number = #{originalOrderNumber}
+    </select>
+
+    <select id="selectAvailableTickets" resultMap="BaseResultMap">
+        SELECT * FROM waitlist_ticket
+        WHERE status = 'AVAILABLE'
+        AND train_id = #{trainId}
+        AND start_station_id = #{startStationId}
+        AND end_station_id = #{endStationId}
+        AND seat_type = #{seatType}
+        AND departure_date = #{departureDate}
+        ORDER BY create_time ASC
+    </select>
+
+    <select id="selectAllAvailableTickets" resultMap="BaseResultMap">
+        SELECT * FROM waitlist_ticket
+        WHERE status = 'AVAILABLE'
+        ORDER BY create_time ASC
+    </select>
+
+    <update id="updateStatus">
+        UPDATE waitlist_ticket
+        SET status = #{status},
+            update_time = #{updateTime}
+        WHERE id = #{id}
+    </update>
+</mapper>

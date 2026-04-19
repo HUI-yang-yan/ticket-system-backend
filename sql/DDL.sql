@@ -347,4 +347,37 @@ create index idx_status
 create index idx_train_date_seat
     on waitlist_ticket (train_id, departure_date, seat_type);
 
+-- 退款记录表
+create table refund_record
+(
+    id                   bigint auto_increment comment '主键' primary key,
+    refund_number        varchar(32)                          not null comment '退款流水号',
+    order_number         varchar(32)                          not null comment '订单号',
+    user_id              bigint                               null comment '用户ID',
+    refund_amount        decimal(10, 2)                       not null comment '申请退款金额',
+    actual_refund_amount decimal(10, 2)                       null comment '实际退款金额',
+    service_fee          decimal(10, 2)                       null comment '手续费',
+    refund_reason        varchar(100)                          null comment '退款原因',
+    refund_reason_code   varchar(20)                           null comment '退款原因代码',
+    status               varchar(20)                          null comment '状态：APPLIED/PROCESSING/SUCCESS/FAILED',
+    payment_method       varchar(20)                           null comment '支付方式',
+    refund_method        varchar(20)                           null comment '退款方式：ORIGINAL/BANK',
+    bank_name            varchar(50)                           null comment '银行名称',
+    bank_card_no         varchar(30)                           null comment '银行卡号',
+    card_holder_name     varchar(50)                           null comment '持卡人姓名',
+    channel_refund_no    varchar(64)                           null comment '渠道退款单号',
+    remark               varchar(255)                          null comment '备注',
+    apply_time           datetime                              null comment '申请时间',
+    process_time         datetime                              null comment '处理时间',
+    complete_time        datetime                              null comment '完成时间',
+    create_time          datetime default CURRENT_TIMESTAMP    null comment '创建时间',
+    update_time          datetime default CURRENT_TIMESTAMP    null on update CURRENT_TIMESTAMP comment '更新时间',
+    constraint uk_refund_number unique (refund_number),
+    constraint uk_order_refund unique (order_number)
+) comment '退款记录表' charset = utf8mb4;
+
+create index idx_user_id on refund_record (user_id);
+create index idx_status on refund_record (status);
+create index idx_create_time on refund_record (create_time);
+
 

@@ -1,14 +1,17 @@
 package com.ticket.system.service.impl;
 
+import com.ticket.system.common.constant.TicketConstant;
 import com.ticket.system.common.exception.BusinessException;
 import com.ticket.system.common.exception.ErrorCode;
 import com.ticket.system.dto.request.TrainQueryDTO;
 import com.ticket.system.dto.request.TrainStationDTO;
 import com.ticket.system.dto.response.TrainInfoDTO;
 import com.ticket.system.entity.Station;
+import com.ticket.system.entity.TicketInventory;
 import com.ticket.system.entity.Train;
 import com.ticket.system.entity.TrainStation;
 import com.ticket.system.mapper.StationMapper;
+import com.ticket.system.mapper.TicketInventoryMapper;
 import com.ticket.system.mapper.TrainMapper;
 import com.ticket.system.mapper.TrainStationMapper;
 import com.ticket.system.service.TrainService;
@@ -19,7 +22,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -37,6 +43,9 @@ public class TrainServiceImpl implements TrainService {
 
     @Autowired
     private StationMapper stationMapper;
+
+    @Autowired
+    private TicketInventoryMapper ticketInventoryMapper;
 
     @Override
     public TrainInfoDTO getTrainInfoById(Long id) {
@@ -147,6 +156,7 @@ public class TrainServiceImpl implements TrainService {
     }
 
     @Override
+    @Transactional
     public void addTrain(TrainInfoDTO trainInfoDTO) {
         Train train = new Train();
         BeanUtils.copyProperties(trainInfoDTO, train);
@@ -162,13 +172,7 @@ public class TrainServiceImpl implements TrainService {
 
         int result = trainMapper.insert(train);
         for (TrainStationDTO trainStationDTO : trainInfoDTO.getStationList()) {
-            TrainStation trainStation = new TrainStation();
-            trainStation.setTrainId(train.getId());
-            trainStation.setStationIndex(trainStationDTO.getStationOrder());
-            trainStation.setStationId(trainStationDTO.getStationId());
-            trainStation.setDepartureTime(trainStationDTO.getDepartureTime());
-            trainStation.setArrivalTime(trainStationDTO.getArrivalTime());
-            trainStation.setStopDuration(trainStationDTO.getStopMinutes());
+            TrainStation trainStation = getTrainStation(trainStationDTO, train);
 
             trainStationMapper.insert(trainStation);
         }
@@ -176,6 +180,57 @@ public class TrainServiceImpl implements TrainService {
         if (result <= 0) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR.getCode(), "添加列车失败");
         }
+
+        // 自动生成票务配置（预售期内每天、每种座位类型）
+        generateTicketInventoryForTrain(train.getId());
+    }
+
+    private static TrainStation getTrainStation(TrainStationDTO trainStationDTO, Train train) {
+        TrainStation trainStation = new TrainStation();
+        trainStation.setTrainId(train.getId());
+        trainStation.setStationIndex(trainStationDTO.getStationOrder());
+        trainStation.setStationId(trainStationDTO.getStationId());
+        trainStation.setDepartureTime(trainStationDTO.getDepartureTime());
+        trainStation.setArrivalTime(trainStationDTO.getArrivalTime());
+        trainStation.setStopDuration(trainStationDTO.getStopMinutes());
+        trainStation.setCreateTime(new Date());
+        return trainStation;
+    }
+
+    /**
+     * 为新车次自动生成票务配置（每种座位类型一条记录）
+     */
+    private void generateTicketInventoryForTrain(Long trainId) {
+        List<String> seatTypes = getSeatTypes();
+
+        for (String seatType : seatTypes) {
+            // 检查是否已存在
+            TicketInventory existing = ticketInventoryMapper.selectByTrainAndType(trainId, seatType);
+            if (existing != null) {
+                continue;
+            }
+
+            TicketInventory inventory = new TicketInventory();
+            inventory.setTrainId(trainId);
+            inventory.setSeatType(seatType);
+            inventory.setStatus(0);
+            inventory.setTotalCount(0);        // 默认0，用户后续配置
+            inventory.setAvailableCount(0);    // 默认0
+            inventory.setPrice(BigDecimal.ZERO);
+            ticketInventoryMapper.insert(inventory);
+        }
+
+        log.info("为车次生成票务配置完成: trainId={}, seatTypes={}", trainId, seatTypes.size());
+    }
+
+    private List<String> getSeatTypes() {
+        return Arrays.asList(
+                TicketConstant.SEAT_TYPE_BUSINESS,
+                TicketConstant.SEAT_TYPE_FIRST,
+                TicketConstant.SEAT_TYPE_SECOND,
+                TicketConstant.SEAT_TYPE_SOFT_SLEEPER,
+                TicketConstant.SEAT_TYPE_HARD_SLEEPER
+        );
     }
 
     @Override
@@ -208,7 +263,10 @@ public class TrainServiceImpl implements TrainService {
         if (train == null) {
             throw new BusinessException(ErrorCode.TRAIN_NOT_EXIST.getCode(), "列车不存在");
         }
+        // 删除关联数据
         trainStationMapper.deleteByTrainId(train.getId());
+        ticketInventoryMapper.deleteByTrainId(train.getId());
+        // 删除车次
         int result = trainMapper.delete(id);
         if (result <= 0) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR.getCode(), "删除列车失败");

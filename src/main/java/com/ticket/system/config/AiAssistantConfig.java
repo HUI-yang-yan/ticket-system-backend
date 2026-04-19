@@ -13,13 +13,10 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class AiAssistantConfig {
 
-    @Value("${spring.ai.openai.api-key:}")
-    private String openaiApiKey;
-
-    @Value("${spring.ai.openai.base-url:https://api.openai.com}")
+    @Value("${spring.ai.openai.base-url")
     private String openaiBaseUrl;
 
-    @Value("${spring.ai.openai.chat.model:gpt-3.5-turbo}")
+    @Value("${spring.ai.openai.chat.model")
     private String chatModel;
 
     /**
@@ -27,6 +24,7 @@ public class AiAssistantConfig {
      */
     @Bean
     public ChatClient chatClient(OpenAiChatModel chatModel) {
-        return ChatClient.builder(chatModel).build();
+        return ChatClient.builder(chatModel)
+                .build();
     }
 }

@@ -92,7 +92,7 @@
                             ON t.id = ts1.train_id AND ts1.station_id = #{startStationId}
                  INNER JOIN train_station ts2
                             ON t.id = ts2.train_id AND ts2.station_id = #{endStationId}
-        WHERE t.status = 1
+        WHERE t.status = 0
           AND ts1.station_index &lt; ts2.station_index
         ORDER BY t.start_time
     </select>

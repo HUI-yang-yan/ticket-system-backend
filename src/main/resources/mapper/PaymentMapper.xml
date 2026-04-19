@@ -90,6 +90,14 @@
         WHERE order_id = #{orderId}
     </update>
 
+    <!-- 带条件的退款成功更新（幂等性） -->
+    <update id="updateRefundSuccessWithLock">
+        UPDATE payment
+        SET refund_status = 2
+        WHERE order_id = #{orderId}
+          AND refund_status = 1
+    </update>
+
     <update id="updateRefundFailed">
         UPDATE payment
         SET refund_status = 3

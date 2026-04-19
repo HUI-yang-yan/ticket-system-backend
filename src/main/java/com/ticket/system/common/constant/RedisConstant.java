@@ -15,6 +15,9 @@ public class RedisConstant {
     public static final String ORDER_LOCK_PREFIX = "order:lock:";
     public static final String ORDER_TEMP_PREFIX = "order:temp:";
 
+    // AI 聊天会话
+    public static final String AI_CHAT_SESSION_PREFIX = "ai:chat:session:";
+
     // 缓存时间（秒）
     public static final long USER_TOKEN_EXPIRE = 24 * 60 * 60L;      // 24小时
     public static final long TICKET_INVENTORY_EXPIRE = 60 * 60L;     // 1小时

@@ -1,32 +1,34 @@
 # 12306火车票订票系统
 
-基于 Spring Boot 2.7.14 开发的火车票订票系统，支持用户注册登录、车次查询、购票、退票、候补购票等核心功能。
+基于 Spring Boot 3.2 + JDK 17 开发的智能化火车票订票系统，支持用户注册登录、车次查询、购票、退票、候补购票等核心功能，并集成 **Spring AI** 提供智能客服体验。
 
 ## 技术栈
 
 | 技术 | 说明 |
 |------|------|
-| Spring Boot 2.7.14 | 核心框架 |
-| MyBatis | 数据访问层 |
-| MySQL | 数据库 |
-| Redis (Redisson) | 分布式锁、缓存 |
+| Spring Boot 3.2.4 | 核心框架（升级自 2.7.14） |
+| Spring AI 1.0.0-M6 | AI 智能助手（集成通义千问/ChatGPT） |
+| MyBatis Spring Boot 3.0.3 | 数据访问层 |
+| MySQL 8.0 | 数据库 |
+| Redis (Redisson 3.27.0) | 分布式锁、缓存、会话管理 |
 | RabbitMQ | 消息队列 |
 | JWT | 用户认证 |
 | Quartz | 定时任务 |
 | Lombok | 简化代码 |
+| springdoc-openapi 2.5.0 | API 文档（替代 Swagger） |
 
 ## 项目结构
 
 ```
 src/main/java/com/ticket/system/
-├── controller/          # REST API控制器
+├── controller/          # REST API 控制器
 ├── service/            # 服务接口
 │   └── impl/          # 服务实现
-├── mapper/            # MyBatis Mapper接口
+├── mapper/            # MyBatis Mapper 接口
 ├── entity/            # 实体类
 ├── dto/               # 数据传输对象
-│   ├── request/       # 请求DTO
-│   └── response/      # 响应DTO
+│   ├── request/       # 请求 DTO
+│   └── response/      # 响应 DTO
 ├── config/            # 配置类
 ├── common/            # 公共组件
 │   ├── constant/      # 常量定义
@@ -37,8 +39,12 @@ src/main/java/com/ticket/system/
 │   ├── producer/     # 消息生产者
 │   └── consumer/     # 消息消费者
 ├── task/              # 定时任务
-├── aspect/           # AOP切面
-└── interceptor/      # 拦截器
+├── aspect/           # AOP 切面
+├── interceptor/      # 拦截器
+└── ai/               # AI 相关模块
+    ├── tools/        # AI Tools（Function Calling）
+    ├── prompt/       # AI 提示词模板
+    └── SystemConstant.java  # AI 系统常量
 ```
 
 ## 核心功能
@@ -99,6 +105,74 @@ src/main/java/com/ticket/system/
 - 修改联系人 `/api/contact/{contactId}`
 - 删除联系人 `/api/contact/{contactId}`
 
+### 10. AI 智能助手模块
+
+系统集成了基于 Spring AI 的智能助手，支持自然语言交互、智能票务查询、多轮对话等功能。
+
+| 接口 | 说明 |
+|------|------|
+| POST `/api/ai/chat` | **统一聊天接口**（带会话管理、自动查票） |
+| POST `/api/ai/parse` | 解析用户输入为结构化查询参数 |
+| GET `/api/ai/history/{sessionId}` | 获取聊天历史 |
+| DELETE `/api/ai/history/{sessionId}` | 清除聊天历史 |
+| POST `/api/ai/chat/legacy` | 通用对话接口（无会话管理） |
+| POST `/api/ai/ticket/consult` | 票务咨询（针对特定车次和日期） |
+| POST `/api/ai/order/consult` | 订单咨询（针对特定订单） |
+| GET `/api/ai/health` | AI 服务健康检查 |
+
+#### AI 聊天接口使用示例
+
+**请求示例**：
+```json
+POST /api/ai/chat
+{
+  "sessionId": "user-123-session",
+  "message": "我想查一下明天北京到上海的高铁",
+  "autoQuery": true
+}
+```
+
+**响应示例**：
+```json
+{
+  "success": true,
+  "message": "已为您查询到 5 个车次，请查看下方结果。",
+  "sessionId": "user-123-session",
+  "params": {
+    "from": "北京",
+    "to": "上海",
+    "date": "2026-04-20",
+    "timeRange": "any",
+    "preference": "fastest"
+  },
+  "paramMissingCount": 0,
+  "missingParams": "无",
+  "tickets": [...]
+}
+```
+
+#### AI 对话特性
+
+1. **意图识别**：自动判断用户是想查询车票还是闲聊打招呼，避免不必要的 API 调用
+2. **参数提取**：将自然语言转换为结构化查询参数（出发地、目的地、日期、时间偏好、排序偏好）
+3. **多轮对话**：支持会话上下文管理，可连续追问
+4. **闲聊问候**：用户打招呼时返回友好问候，不调用 tools
+
+#### AI 配置说明
+
+系统使用通义千问作为默认模型，可在 `application.yml` 中配置：
+
+```yaml
+spring:
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY}           # API Key（建议使用环境变量）
+      base-url: https://dashscope.aliyuncs.com/compatible-mode  # 通义千问地址
+      chat:
+        options:
+          model: qwen-max-latest            # 默认模型
+```
+
 ## 数据库表结构
 
 ### 核心表
@@ -127,7 +201,7 @@ src/main/java/com/ticket/system/
 | `waitlist_order` | 候补订单表 |
 | `waitlist_ticket` | 候补票池表 |
 
-详细建表SQL请参考 `WAITLIST_README.md`
+详细建表 SQL 请参考 `WAITLIST_README.md`
 
 ## 配置文件
 
@@ -141,9 +215,9 @@ server:
 
 spring:
   datasource:
-    url: jdbc:mysql://192.168.171.134:3306/ticket_system?useUnicode=true&characterEncoding=utf8
+    url: jdbc:mysql://192.168.171.134:3306/ticket_system
     username: root
-    password: root
+    password: 123456
 
   redis:
     host: 192.168.171.134
@@ -152,6 +226,14 @@ spring:
   rabbitmq:
     host: 192.168.171.134
     port: 5672
+
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY}
+      base-url: https://dashscope.aliyuncs.com/compatible-mode
+      chat:
+        options:
+          model: qwen-max-latest
 ```
 
 ## 定时任务
@@ -170,44 +252,90 @@ spring:
 | `order.queue` | 订单创建消息 |
 | `ticket.queue` | 票务消息 |
 | `refund.queue` | 退款消息 |
-| `refund.delay.queue` | 退款延迟重试队列 |
+| `refund.delay.queue` | 退款延迟重试队列（30秒 TTL） |
 
 ## 开发环境运行
 
-```bash
-# 编译项目
-mvn clean package
+### 环境要求
 
-# 运行项目
-mvn spring-boot:run
-
-# 或直接运行jar
-java -jar target/ticket-12306-system-1.0.0.jar
-```
-
-## 环境依赖
-
-- JDK 1.8+
+- **JDK 17+**（重要：已升级至 Java 17）
 - MySQL 8.0+
 - Redis 6.0+
 - RabbitMQ 3.9+
 - Maven 3.6+
 
-## API文档
+### 编译运行
 
-启动项目后访问 Swagger UI：
+```bash
+# 克隆项目后进入目录
+cd ticket-12306-system
+
+# 编译项目
+mvn clean compile
+
+# 打包
+mvn clean package
+
+# 运行项目（开发环境）
+mvn spring-boot:run
+
+# 或指定 profile 运行
+mvn spring-boot:run -Dspring-boot.run.profiles=dev
+
+# 或直接运行 jar
+java -jar target/ticket-12306-system-1.0.0.jar
 ```
-http://localhost:8080/api/swagger-ui.html
-```
+
+### 配置 AI 功能
+
+1. 设置环境变量或修改 `application.yml` 中的 API Key
+2. 默认使用通义千问模型（如需切换其他模型，修改 `spring.ai.openai.base-url` 和 `model`）
+
+## API 文档
+
+启动项目后访问 OpenAPI 文档：
+
+- **Swagger UI**: `http://localhost:8080/api/swagger-ui.html`
+- **OpenAPI JSON**: `http://localhost:8080/api/v3/api-docs`
 
 ## 项目亮点
 
-1. **分布式锁**：使用 Redisson 实现分布式锁，防止并发问题
-2. **消息队列**：使用 RabbitMQ 实现异步处理和延迟重试
-3. **定时任务**：使用 Quartz 实现定时任务调度
-4. **JWT认证**：无状态认证，支持 token 续期
-5. **候补购票**：支持先到先得的候补购票机制
-6. **高并发设计**：基于 Redis 的缓存和锁实现高并发场景
+### 1. 分布式锁
+使用 Redisson 实现分布式锁，防止并发问题。锁 key 格式：`{prefix}:{entityId}:{...}`
+
+### 2. 消息队列
+使用 RabbitMQ 实现异步处理和延迟重试，支持手动 ACK。
+
+### 3. 定时任务
+使用 Quartz 实现定时任务调度，包括票务库存生成、订单自动取消、候补队列匹配。
+
+### 4. JWT 认证
+无状态认证，支持 token 续期（剩余时间 < 30 分钟时自动续期）。
+
+### 5. 候补购票
+支持先到先得（FIFO）的候补购票机制，退票自动转入候补池。
+
+### 6. AI 智能助手
+- 基于 Spring AI + 通义千问/ChatGPT
+- 支持 Function Calling 工具调用
+- 意图识别 + 参数提取 + 多轮对话
+- 闲聊问候不调用 tools，节省资源
+
+### 7. 高并发设计
+基于 Redis 的缓存和分布式锁实现高并发场景下的库存扣减。
+
+## 常见问题
+
+### Q: 升级 JDK 版本后报错？
+确保使用 JDK 17+，项目已不再支持 JDK 8。
+
+### Q: AI 功能不可用？
+1. 检查 `OPENAI_API_KEY` 环境变量是否配置
+2. 检查网络能否访问通义千问 API
+3. 查看日志确认 AI 服务健康状态：`GET /api/ai/health`
+
+### Q: 候补购票如何工作？
+用户提交候补请求 → 有乘客退票时系统自动匹配 → 用户支付（24小时窗口）→ 生成正式订单。详见 `WAITLIST_README.md`
 
 ## 许可证
 

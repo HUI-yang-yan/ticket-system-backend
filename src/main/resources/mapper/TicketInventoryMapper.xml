@@ -5,62 +5,92 @@
     <resultMap id="BaseResultMap" type="com.ticket.system.entity.TicketInventory">
         <id column="id" property="id" jdbcType="BIGINT"/>
         <result column="train_id" property="trainId" jdbcType="BIGINT"/>
-        <result column="departure_date" property="departureDate" jdbcType="DATE"/>
         <result column="seat_type" property="seatType" jdbcType="VARCHAR"/>
         <result column="total_count" property="totalCount" jdbcType="INTEGER"/>
         <result column="available_count" property="availableCount" jdbcType="INTEGER"/>
+        <result column="price" property="price" jdbcType="DECIMAL"/>
         <result column="version" property="version" jdbcType="INTEGER"/>
+        <result column="status" property="status" jdbcType="INTEGER"/>
         <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
         <result column="update_time" property="updateTime" jdbcType="TIMESTAMP"/>
     </resultMap>
 
     <insert id="insert" parameterType="com.ticket.system.entity.TicketInventory" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO ticket_inventory (
-            train_id, departure_date, seat_type, total_count,
-            available_count, version, create_time, update_time
+            train_id, seat_type, total_count,
+            available_count, price, version, status, create_time, update_time
         ) VALUES (
-                     #{trainId}, #{departureDate}, #{seatType}, #{totalCount},
-                     #{availableCount}, #{version}, #{createTime}, #{updateTime}
+                     #{trainId}, #{seatType}, #{totalCount},
+                     #{availableCount}, #{price}, 0, #{status}, NOW(), NOW()
                  )
+    </insert>
+
+    <insert id="insertBatch" parameterType="java.util.List">
+        INSERT INTO ticket_inventory (
+            train_id, seat_type, total_count,
+            available_count, price, version, status, create_time, update_time
+        ) VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.trainId}, #{item.seatType}, #{item.totalCount},
+             #{item.availableCount}, #{item.price}, 0, #{item.status}, NOW(), NOW())
+        </foreach>
     </insert>
 
     <update id="update" parameterType="com.ticket.system.entity.TicketInventory">
         UPDATE ticket_inventory
         <set>
             <if test="trainId != null">train_id = #{trainId},</if>
-            <if test="departureDate != null">departure_date = #{departureDate},</if>
             <if test="seatType != null">seat_type = #{seatType},</if>
             <if test="totalCount != null">total_count = #{totalCount},</if>
             <if test="availableCount != null">available_count = #{availableCount},</if>
+            <if test="price != null">price = #{price},</if>
+            <if test="status != null">status = #{status},</if>
             version = version + 1,
             update_time = NOW()
         </set>
         WHERE id = #{id} AND version = #{version}
     </update>
 
+    <update id="updateAvailableCount">
+        UPDATE ticket_inventory
+        SET available_count = #{availableCount},
+            version = version + 1,
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
     <delete id="delete" parameterType="java.lang.Long">
         DELETE FROM ticket_inventory WHERE id = #{id}
     </delete>
 
-    <select id="selectById" parameterType="java.lang.Long" resultMap="BaseResultMap">
-        SELECT *
-        FROM ticket_inventory
-        WHERE id = #{id}
+    <delete id="deleteByTrainId" parameterType="java.lang.Long">
+        DELETE FROM ticket_inventory WHERE train_id = #{trainId}
+    </delete>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT * FROM ticket_inventory WHERE id = #{id}
     </select>
 
-    <select id="selectByTrainAndDateAndType" resultMap="BaseResultMap">
-        SELECT *
-        FROM ticket_inventory
+    <select id="selectByTrainAndType" resultMap="BaseResultMap">
+        SELECT * FROM ticket_inventory
         WHERE train_id = #{trainId}
-        AND departure_date = #{departureDate}
         AND seat_type = #{seatType}
     </select>
 
-    <select id="selectByTrainAndDate" resultMap="BaseResultMap">
-        SELECT *
-        FROM ticket_inventory
+    <select id="selectByTrainId" resultMap="BaseResultMap">
+        SELECT * FROM ticket_inventory
         WHERE train_id = #{trainId}
-        AND departure_date = #{departureDate}
+        ORDER BY seat_type
+    </select>
+
+    <select id="selectByCondition" resultMap="BaseResultMap">
+        SELECT * FROM ticket_inventory
+        <where>
+            <if test="trainId != null">AND train_id = #{trainId}</if>
+            <if test="seatType != null">AND seat_type = #{seatType}</if>
+            <if test="status != null">AND status = #{status}</if>
+        </where>
+        ORDER BY train_id, seat_type
     </select>
 
     <update id="reduceInventory">
@@ -76,18 +106,41 @@
         SET available_count = #{availableCount},
             version = version + 1,
             update_time = NOW()
-        WHERE id = #{id} AND version = #{version} AND available_count + #{availableCount} &lt;= total_count
+        WHERE id = #{id} AND version = #{version}
+    </update>
+
+    <!-- 原子增加库存（解决并发丢失更新问题） -->
+    <update id="increaseInventoryAtomic">
+        UPDATE ticket_inventory
+        SET available_count = available_count + #{increment},
+            version = version + 1,
+            update_time = NOW()
+        WHERE id = #{id}
     </update>
 
     <select id="selectForUpdate" resultMap="BaseResultMap">
-        SELECT *
-        FROM ticket_inventory
+        SELECT * FROM ticket_inventory
         WHERE train_id = #{trainId}
-        AND departure_date = #{departureDate}
         AND seat_type = #{seatType}
         FOR UPDATE
     </select>
-    <select id="selectAll" resultType="com.ticket.system.entity.TicketInventory">
-        select * from ticket_system.ticket_inventory;
+
+    <select id="selectForUpdateById" resultMap="BaseResultMap">
+        SELECT * FROM ticket_inventory
+        WHERE id = #{id}
+        FOR UPDATE
+    </select>
+
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT * FROM ticket_inventory ORDER BY train_id, seat_type
+    </select>
+
+    <select id="selectByTrainIds" resultMap="BaseResultMap">
+        SELECT * FROM ticket_inventory
+        WHERE train_id IN
+        <foreach collection="trainIds" item="trainId" open="(" separator="," close=")">
+            #{trainId}
+        </foreach>
+        ORDER BY train_id, seat_type
     </select>
 </mapper>

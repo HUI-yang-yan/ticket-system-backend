@@ -21,5 +21,8 @@ public interface PaymentMapper {
 
     int updateRefundSuccess(Long orderId);
 
+    /** 带条件的退款成功更新（幂等性） */
+    int updateRefundSuccessWithLock(Long orderId);
+
     int updateRefundFailed(Long orderId);
 }

@@ -34,23 +34,37 @@ public class JwtInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
-        String token = request.getHeader(jwtUtil.getHeader());
+        String authHeader = request.getHeader(jwtUtil.getHeader());
 
-        if (!StringUtils.hasText(token)) {
+        if (!StringUtils.hasText(authHeader)) {
             throw new BusinessException(
                     ErrorCode.UNAUTHORIZED.getCode(),
                     "未登录或 Token 缺失"
             );
         }
 
+        // 去掉 Bearer 前缀
+        String token = authHeader;
+        if (authHeader.startsWith("Bearer ")) {
+            token = authHeader.substring(7);
+        }
+
+        if (!StringUtils.hasText(token)) {
+            throw new BusinessException(
+                    ErrorCode.UNAUTHORIZED.getCode(),
+                    "Token格式错误"
+            );
+        }
+
         try {
-            // 验证Token是否过期
-            if (jwtUtil.isTokenExpired(token)) {
+            // 先解析Token，解析失败说明Token无效
+            Claims claims = jwtUtil.parseToken(token);
+
+            // 解析成功后再检查是否过期
+            if (jwtUtil.isTokenExpired(claims)) {
                 throw new BusinessException(ErrorCode.TOKEN_EXPIRED.getCode(), "Token已过期");
             }
 
-            // 解析Token
-            Claims claims = jwtUtil.parseToken(token);
             Long userId = Long.valueOf(claims.getSubject());
             String username = (String) claims.get("username");
 

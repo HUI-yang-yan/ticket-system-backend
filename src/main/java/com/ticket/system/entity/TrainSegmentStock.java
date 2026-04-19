@@ -28,6 +28,11 @@ public class TrainSegmentStock {
     private Long startStationId;
 
     /**
+     * 区间终点站
+     */
+    private Long endStationId;
+
+    /**
      * 乘车日期
      */
     private LocalDate travelDate;

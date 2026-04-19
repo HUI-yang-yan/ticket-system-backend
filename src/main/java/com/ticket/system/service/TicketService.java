@@ -1,15 +1,12 @@
 package com.ticket.system.service;
 
+import com.ticket.system.dto.request.TicketInventoryCreateDTO;
+import com.ticket.system.dto.request.TicketInventoryQueryDTO;
 import com.ticket.system.dto.request.TicketQueryDTO;
 import com.ticket.system.dto.response.TicketInfoDTO;
+import com.ticket.system.dto.response.TicketInventoryDTO;
 import com.ticket.system.entity.TicketInventory;
 
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import java.time.LocalDate;
-import java.util.Date;
 import java.util.List;
 
 public interface TicketService {
@@ -20,7 +17,13 @@ public interface TicketService {
                           Long startStationId, Long endStationId);
     void syncTicketInventory();
     void addTicketsByHands(List<Long> ticketIds);
-
     List<TicketInventory> getAllTicketInventory();
 
+    // 票务库存配置管理
+    TicketInventoryDTO createTicketInventory(TicketInventoryCreateDTO dto);
+    TicketInventoryDTO updateTicketInventory(TicketInventoryCreateDTO dto);
+    boolean deleteTicketInventory(Long id);
+    TicketInventoryDTO getTicketInventoryById(Long id);
+    List<TicketInventoryDTO> queryTicketInventories(TicketInventoryQueryDTO queryDTO);
+    void batchCreateTicketInventory(List<TicketInventoryCreateDTO> dtos);
 }

@@ -9,16 +9,8 @@ import com.ticket.system.common.util.SnowflakeIdUtil;
 import com.ticket.system.common.util.ThreadLocalUtil;
 import com.ticket.system.dto.request.OrderCreateDTO;
 import com.ticket.system.dto.response.OrderInfoDTO;
-import com.ticket.system.entity.Order;
-import com.ticket.system.entity.Station;
-import com.ticket.system.entity.TicketInventory;
-import com.ticket.system.entity.Train;
-import com.ticket.system.entity.User;
-import com.ticket.system.mapper.OrderMapper;
-import com.ticket.system.mapper.StationMapper;
-import com.ticket.system.mapper.TicketInventoryMapper;
-import com.ticket.system.mapper.TrainMapper;
-import com.ticket.system.mapper.UserMapper;
+import com.ticket.system.entity.*;
+import com.ticket.system.mapper.*;
 import com.ticket.system.mq.producer.OrderProducer;
 import com.ticket.system.service.OrderService;
 import com.ticket.system.service.PaymentService;
@@ -213,7 +205,6 @@ public class OrderServiceImpl implements OrderService {
         try {
             TicketInventory inventory = ticketInventoryMapper.selectForUpdate(
                     order.getTrainId(),
-                    order.getDepartureDate().toLocalDate().toString(),
                     order.getSeatType());
             if (inventory != null) {
                 int updated = ticketInventoryMapper.increaseInventory(

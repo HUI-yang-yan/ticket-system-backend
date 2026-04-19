@@ -1,22 +1,19 @@
 package com.ticket.system.entity;
 
 import lombok.Data;
-
 import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.Date;
+import java.time.LocalDateTime;
 
 @Data
 public class TicketInventory {
     private Long id;
     private Long trainId;
-    private LocalDate departureDate;
     private String seatType;
     private Integer totalCount;
     private Integer availableCount;
-    private Integer version;
-    private Date createTime;
-    private Date updateTime;
     private BigDecimal price;
+    private Integer version;
     private Integer status;
+    private LocalDateTime createTime;
+    private LocalDateTime updateTime;
 }

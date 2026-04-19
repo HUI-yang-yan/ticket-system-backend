@@ -1,0 +1,3966 @@
+{
+  "openapi" : "3.0.1",
+  "info" : {
+    "title" : "OpenAPI definition",
+    "version" : "v0"
+  },
+  "servers" : [ {
+    "url" : "http://localhost:8080/api",
+    "description" : "Generated server url"
+  } ],
+  "tags" : [ {
+    "name" : "联系人管理",
+    "description" : "乘客联系人增删改查、默认设置"
+  }, {
+    "name" : "候补购票",
+    "description" : "候补订单创建、查询、取消及队列管理"
+  }, {
+    "name" : "票务查询",
+    "description" : "车票查询、购买、同步"
+  }, {
+    "name" : "车站管理",
+    "description" : "车站信息查询、添加、修改、删除"
+  }, {
+    "name" : "列车管理",
+    "description" : "列车信息查询、添加、修改、删除"
+  }, {
+    "name" : "AI助手",
+    "description" : "智能问答、订单查询、票务咨询、聊天会话管理"
+  }, {
+    "name" : "票务配置管理",
+    "description" : "车票库存配置管理，用于配置车次座位类型的总票数、可用票数及票价"
+  }, {
+    "name" : "用户管理",
+    "description" : "用户注册、登录、信息管理"
+  }, {
+    "name" : "订单管理",
+    "description" : "订单创建、查询、取消、支付"
+  }, {
+    "name" : "支付管理",
+    "description" : "支付创建、查询、回调、退款"
+  } ],
+  "paths" : {
+    "/user/update" : {
+      "put" : {
+        "tags" : [ "用户管理" ],
+        "summary" : "更新用户信息",
+        "description" : "更新用户个人资料信息",
+        "operationId" : "updateUser",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UserInfoDTO"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ticket/inventory" : {
+      "put" : {
+        "tags" : [ "票务配置管理" ],
+        "summary" : "更新票务配置",
+        "description" : "更新指定车次和座位类型的票务配置信息，包括总票数、可用票数、票价、状态",
+        "operationId" : "update",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TicketInventoryCreateDTO"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultTicketInventoryDTO"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "tags" : [ "票务配置管理" ],
+        "summary" : "创建票务配置",
+        "description" : "为指定车次和座位类型创建票务配置，创建后可配置总票数和票价",
+        "operationId" : "create",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TicketInventoryCreateDTO"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultTicketInventoryDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/station/update" : {
+      "put" : {
+        "tags" : [ "车站管理" ],
+        "summary" : "更新车站信息",
+        "description" : "修改车站详细信息",
+        "operationId" : "updateStation",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/StationInfoDTO"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/contact/default/{contactId}" : {
+      "put" : {
+        "tags" : [ "联系人管理" ],
+        "summary" : "设置默认联系人",
+        "description" : "将指定联系人设置为默认乘车人",
+        "operationId" : "setDefault",
+        "parameters" : [ {
+          "name" : "contactId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultBoolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/waitlist/process" : {
+      "post" : {
+        "tags" : [ "候补购票" ],
+        "summary" : "手动触发候补队列处理",
+        "description" : "管理员手动触发候补购票队列处理任务",
+        "operationId" : "processWaitlist",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/waitlist/paid/{waitlistNumber}" : {
+      "post" : {
+        "tags" : [ "候补购票" ],
+        "summary" : "候补订单支付成功回调",
+        "description" : "候补订单支付成功后，系统处理出票",
+        "operationId" : "waitlistOrderPaid",
+        "parameters" : [ {
+          "name" : "waitlistNumber",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultBoolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/waitlist/create" : {
+      "post" : {
+        "tags" : [ "候补购票" ],
+        "summary" : "创建候补购票请求",
+        "description" : "用户提交候补购票请求，指定车次、座位类型、出行日期",
+        "operationId" : "createWaitlistOrder",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/WaitlistCreateDTO"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultWaitlistOrderDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/waitlist/cancel/{id}" : {
+      "post" : {
+        "tags" : [ "候补购票" ],
+        "summary" : "取消候补订单",
+        "description" : "取消用户提交的候补购票请求",
+        "operationId" : "cancelWaitlistOrder",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultBoolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/user/register" : {
+      "post" : {
+        "tags" : [ "用户管理" ],
+        "summary" : "用户注册",
+        "description" : "用户提供用户名、密码、手机号、身份证进行注册",
+        "operationId" : "register",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UserRegisterDTO"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultUserInfoDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/user/logout" : {
+      "post" : {
+        "tags" : [ "用户管理" ],
+        "summary" : "用户登出",
+        "description" : "退出当前登录状态",
+        "operationId" : "logout",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/user/login" : {
+      "post" : {
+        "tags" : [ "用户管理" ],
+        "summary" : "用户登录",
+        "description" : "用户名密码登录，返回JWT Token",
+        "operationId" : "login",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UserLoginDTO"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/train/update" : {
+      "post" : {
+        "tags" : [ "列车管理" ],
+        "summary" : "更新列车信息",
+        "description" : "修改列车详细信息",
+        "operationId" : "updateTrain",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TrainInfoDTO"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/train/search" : {
+      "post" : {
+        "tags" : [ "列车管理" ],
+        "summary" : "条件搜索列车",
+        "description" : "根据出发站、到达站、日期等条件搜索列车",
+        "operationId" : "searchTrains",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TrainQueryDTO"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultListTrainInfoDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/train/save" : {
+      "post" : {
+        "tags" : [ "列车管理" ],
+        "summary" : "添加列车",
+        "description" : "新增列车信息到系统中",
+        "operationId" : "addTrain",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TrainInfoDTO"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ticket/sync" : {
+      "post" : {
+        "tags" : [ "票务查询" ],
+        "summary" : "同步票务库存",
+        "description" : "从外部系统同步最新票务库存数据",
+        "operationId" : "syncTicketInventory",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ticket/query" : {
+      "post" : {
+        "tags" : [ "票务查询" ],
+        "summary" : "查询车票",
+        "description" : "根据出发站、到达站、日期查询可用车票",
+        "operationId" : "queryTickets",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/TicketQueryDTO"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultListTicketInfoDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ticket/purchase" : {
+      "post" : {
+        "tags" : [ "票务查询" ],
+        "summary" : "购买车票",
+        "description" : "购买指定车次的车票，支持选择座位类型和区间",
+        "operationId" : "purchaseTicket",
+        "parameters" : [ {
+          "name" : "trainId",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "name" : "departureDate",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "seatType",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "startStationId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "name" : "endStationId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultBoolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ticket/inventory/batch" : {
+      "post" : {
+        "tags" : [ "票务配置管理" ],
+        "summary" : "批量创建票务配置",
+        "description" : "批量创建多条票务配置，支持一次为多个座位类型创建配置",
+        "operationId" : "batchCreate",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "type" : "array",
+                "items" : {
+                  "$ref" : "#/components/schemas/TicketInventoryCreateDTO"
+                }
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ticket/add/ticket/{ticketIds}" : {
+      "post" : {
+        "tags" : [ "票务查询" ],
+        "summary" : "手动更新票信息",
+        "description" : "手动更新指定车票ID的票信息",
+        "operationId" : "updateTicketsByHands",
+        "parameters" : [ {
+          "name" : "ticketIds",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "array",
+            "items" : {
+              "type" : "integer",
+              "format" : "int64"
+            }
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/station/add" : {
+      "post" : {
+        "tags" : [ "车站管理" ],
+        "summary" : "添加车站",
+        "description" : "新增车站信息到系统中",
+        "operationId" : "addStation",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/StationInfoDTO"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/payment/refund/{orderId}" : {
+      "post" : {
+        "tags" : [ "支付管理" ],
+        "summary" : "申请退款",
+        "description" : "对指定订单申请退款",
+        "operationId" : "refundPayment",
+        "parameters" : [ {
+          "name" : "orderId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultBoolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/payment/create" : {
+      "post" : {
+        "tags" : [ "支付管理" ],
+        "summary" : "创建支付",
+        "description" : "为订单创建支付记录",
+        "operationId" : "createPayment",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PaymentDTO"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultPaymentResultDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/payment/callback" : {
+      "post" : {
+        "tags" : [ "支付管理" ],
+        "summary" : "支付回调",
+        "description" : "接收第三方支付平台的回调通知",
+        "operationId" : "processPaymentCallback",
+        "parameters" : [ {
+          "name" : "paymentNumber",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "status",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultBoolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/order/pay/{orderId}" : {
+      "post" : {
+        "tags" : [ "订单管理" ],
+        "summary" : "支付订单",
+        "description" : "对指定订单进行支付",
+        "operationId" : "payOrder",
+        "parameters" : [ {
+          "name" : "orderId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultBoolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/order/create" : {
+      "post" : {
+        "tags" : [ "订单管理" ],
+        "summary" : "创建订单",
+        "description" : "创建新的车票订单",
+        "operationId" : "createOrder",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/OrderCreateDTO"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultOrderInfoDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/order/check/expired" : {
+      "post" : {
+        "tags" : [ "订单管理" ],
+        "summary" : "检查过期订单",
+        "description" : "检查并标记超期未支付的订单",
+        "operationId" : "checkOrderExpired",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/order/cancel/{orderId}" : {
+      "post" : {
+        "tags" : [ "订单管理" ],
+        "summary" : "取消订单",
+        "description" : "取消指定订单ID的订单",
+        "operationId" : "cancelOrder",
+        "parameters" : [ {
+          "name" : "orderId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultBoolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/order/auto/cancel" : {
+      "post" : {
+        "tags" : [ "订单管理" ],
+        "summary" : "自动取消过期订单",
+        "description" : "系统自动取消超期未支付的订单",
+        "operationId" : "autoCancelExpiredOrders",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/contact/cancel/default/{contactId}" : {
+      "post" : {
+        "tags" : [ "联系人管理" ],
+        "summary" : "取消默认联系人",
+        "description" : "取消指定联系人的默认状态",
+        "operationId" : "cancelDefault",
+        "parameters" : [ {
+          "name" : "contactId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultBoolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/contact/add" : {
+      "post" : {
+        "tags" : [ "联系人管理" ],
+        "summary" : "添加联系人",
+        "description" : "新增乘客联系人信息",
+        "operationId" : "addContact",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ContactDTO"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultBoolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ai/ticket/consult" : {
+      "post" : {
+        "tags" : [ "AI助手" ],
+        "summary" : "票务咨询",
+        "description" : "针对特定车次和日期的票务问题解答",
+        "operationId" : "ticketConsult",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "type" : "object",
+                "additionalProperties" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ai/parse" : {
+      "post" : {
+        "tags" : [ "AI助手" ],
+        "summary" : "解析用户输入",
+        "description" : "将自然语言解析为结构化查询参数（出发地、目的地、日期、时间段、偏好）",
+        "operationId" : "parseQuery",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "type" : "object",
+                "additionalProperties" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultMapStringString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ai/order/consult" : {
+      "post" : {
+        "tags" : [ "AI助手" ],
+        "summary" : "订单咨询",
+        "description" : "针对特定订单的咨询问题解答",
+        "operationId" : "orderConsult",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "type" : "object",
+                "additionalProperties" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ai/chat" : {
+      "post" : {
+        "tags" : [ "AI助手" ],
+        "summary" : "统一聊天接口",
+        "description" : "带会话管理的AI聊天，支持自动查票和多轮对话",
+        "operationId" : "chat",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AiChatRequestDTO"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultAiChatResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ai/chat/legacy" : {
+      "post" : {
+        "tags" : [ "AI助手" ],
+        "summary" : "通用对话接口",
+        "description" : "简单的AI对话，无会话管理功能",
+        "operationId" : "chatLegacy",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "type" : "object",
+                "additionalProperties" : {
+                  "type" : "string"
+                }
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/waitlist/{id}" : {
+      "get" : {
+        "tags" : [ "候补购票" ],
+        "summary" : "根据ID查询候补订单详情",
+        "description" : "通过候补订单ID获取详细信息",
+        "operationId" : "getWaitlistOrderById",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultWaitlistOrderDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/waitlist/user/list" : {
+      "get" : {
+        "tags" : [ "候补购票" ],
+        "summary" : "查询用户候补订单列表",
+        "description" : "获取当前用户的所有候补购票订单",
+        "operationId" : "getUserWaitlistOrders",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultListWaitlistOrderDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/waitlist/ticket/available" : {
+      "get" : {
+        "tags" : [ "候补购票" ],
+        "summary" : "查询所有候补池可用票",
+        "description" : "查询候补池中所有当前可用的车票",
+        "operationId" : "getAllAvailableTickets",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultListWaitlistTicketDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/waitlist/query" : {
+      "get" : {
+        "tags" : [ "候补购票" ],
+        "summary" : "查询候补池可用票",
+        "description" : "按条件筛选候补池中当前可用的车票",
+        "operationId" : "queryAvailableTickets",
+        "parameters" : [ {
+          "name" : "trainId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "name" : "startStationId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "name" : "endStationId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "name" : "seatType",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "departureDate",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultListWaitlistTicketDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/user/info" : {
+      "get" : {
+        "tags" : [ "用户管理" ],
+        "summary" : "获取当前用户信息",
+        "description" : "获取登录用户详细信息",
+        "operationId" : "getUserInfo",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultUserInfoDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/user/check/username" : {
+      "get" : {
+        "tags" : [ "用户管理" ],
+        "summary" : "检查用户名是否存在",
+        "description" : "验证用户名是否已被注册",
+        "operationId" : "checkUsername",
+        "parameters" : [ {
+          "name" : "username",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultBoolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/user/check/phone" : {
+      "get" : {
+        "tags" : [ "用户管理" ],
+        "summary" : "检查手机号是否存在",
+        "description" : "验证手机号是否已被注册",
+        "operationId" : "checkPhone",
+        "parameters" : [ {
+          "name" : "phone",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultBoolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/user/check/idCard" : {
+      "get" : {
+        "tags" : [ "用户管理" ],
+        "summary" : "检查身份证是否存在",
+        "description" : "验证身份证号是否已被注册",
+        "operationId" : "checkIdCard",
+        "parameters" : [ {
+          "name" : "idCard",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultBoolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/train/{id}" : {
+      "get" : {
+        "tags" : [ "列车管理" ],
+        "summary" : "根据ID查询列车",
+        "description" : "通过列车ID获取列车详细信息",
+        "operationId" : "getTrainById",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultTrainInfoDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/train/type/{trainType}" : {
+      "get" : {
+        "tags" : [ "列车管理" ],
+        "summary" : "根据列车类型查询",
+        "description" : "根据列车类型（高铁、动车、特快等）筛选列车",
+        "operationId" : "getTrainsByType",
+        "parameters" : [ {
+          "name" : "trainType",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultListTrainInfoDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/train/route" : {
+      "get" : {
+        "tags" : [ "列车管理" ],
+        "summary" : "根据路线查询列车",
+        "description" : "根据出发站ID和到达站ID查询经过该路线的所有列车",
+        "operationId" : "getTrainsByRoute",
+        "parameters" : [ {
+          "name" : "startStationId",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "name" : "endStationId",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultListTrainInfoDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/train/number/{trainNumber}" : {
+      "get" : {
+        "tags" : [ "列车管理" ],
+        "summary" : "根据车次号查询",
+        "description" : "通过车次号（如G1234）查询列车信息",
+        "operationId" : "getTrainByNumber",
+        "parameters" : [ {
+          "name" : "trainNumber",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultTrainInfoDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/train/list" : {
+      "get" : {
+        "tags" : [ "列车管理" ],
+        "summary" : "获取所有列车",
+        "description" : "查询系统中所有列车信息",
+        "operationId" : "getAllTrains",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultListTrainInfoDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ticket/{ticketId}" : {
+      "get" : {
+        "tags" : [ "票务查询" ],
+        "summary" : "获取车票详情",
+        "description" : "通过车票ID获取车票详细信息",
+        "operationId" : "getTicketDetail",
+        "parameters" : [ {
+          "name" : "ticketId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultTicketInfoDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ticket/inventory/{id}" : {
+      "get" : {
+        "tags" : [ "票务配置管理" ],
+        "summary" : "查询单个票务配置",
+        "description" : "根据ID查询票务配置的详细信息",
+        "operationId" : "getById",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultTicketInventoryDTO"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "票务配置管理" ],
+        "summary" : "删除票务配置",
+        "description" : "根据ID删除票务配置，删除后该配置将不再生效",
+        "operationId" : "delete",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultBoolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ticket/inventory/list" : {
+      "get" : {
+        "tags" : [ "票务配置管理" ],
+        "summary" : "条件查询票务配置",
+        "description" : "根据车次ID、座位类型等条件查询票务配置列表",
+        "operationId" : "list",
+        "parameters" : [ {
+          "name" : "queryDTO",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "$ref" : "#/components/schemas/TicketInventoryQueryDTO"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultListTicketInventoryDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ticket/inventory/all" : {
+      "get" : {
+        "tags" : [ "票务配置管理" ],
+        "summary" : "获取所有票务配置",
+        "description" : "查询系统中所有票务配置信息",
+        "operationId" : "getAll",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultListTicketInventoryDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/station/{id}" : {
+      "get" : {
+        "tags" : [ "车站管理" ],
+        "summary" : "根据ID查询车站",
+        "description" : "通过车站ID获取车站详细信息",
+        "operationId" : "getStationById",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultStationInfoDTO"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "车站管理" ],
+        "summary" : "删除车站",
+        "description" : "根据ID删除车站信息",
+        "operationId" : "deleteStation",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/station/search" : {
+      "get" : {
+        "tags" : [ "车站管理" ],
+        "summary" : "关键字搜索车站",
+        "description" : "根据关键字模糊搜索车站名称或代码",
+        "operationId" : "searchStations",
+        "parameters" : [ {
+          "name" : "keyword",
+          "in" : "query",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultListStationInfoDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/station/province/{province}" : {
+      "get" : {
+        "tags" : [ "车站管理" ],
+        "summary" : "根据省份查询车站",
+        "description" : "查询指定省份下的所有车站",
+        "operationId" : "getStationsByProvince",
+        "parameters" : [ {
+          "name" : "province",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultListStationInfoDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/station/name/{stationName}" : {
+      "get" : {
+        "tags" : [ "车站管理" ],
+        "summary" : "根据车站名称查询",
+        "description" : "通过车站名称精确查询车站信息",
+        "operationId" : "getStationByName",
+        "parameters" : [ {
+          "name" : "stationName",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultStationInfoDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/station/list" : {
+      "get" : {
+        "tags" : [ "车站管理" ],
+        "summary" : "获取所有车站列表",
+        "description" : "查询系统中所有车站信息",
+        "operationId" : "getAllStations",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultListStationInfoDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/station/code/{stationCode}" : {
+      "get" : {
+        "tags" : [ "车站管理" ],
+        "summary" : "根据车站代码查询",
+        "description" : "通过车站代码（如G1234）查询车站信息",
+        "operationId" : "getStationByCode",
+        "parameters" : [ {
+          "name" : "stationCode",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultStationInfoDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/station/city/{city}" : {
+      "get" : {
+        "tags" : [ "车站管理" ],
+        "summary" : "根据城市查询车站",
+        "description" : "查询指定城市下的所有车站",
+        "operationId" : "getStationsByCity",
+        "parameters" : [ {
+          "name" : "city",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultListStationInfoDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/payment/refund/check/{orderId}" : {
+      "get" : {
+        "tags" : [ "支付管理" ],
+        "summary" : "退款检查",
+        "description" : "检查订单是否可退及退款金额",
+        "operationId" : "refundCheck",
+        "parameters" : [ {
+          "name" : "orderId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultRefundCheckResult"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/payment/order/{orderId}" : {
+      "get" : {
+        "tags" : [ "支付管理" ],
+        "summary" : "根据订单ID查询支付",
+        "description" : "通过订单ID获取支付记录",
+        "operationId" : "getPaymentByOrderId",
+        "parameters" : [ {
+          "name" : "orderId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultPaymentResultDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/payment/number/{paymentNumber}" : {
+      "get" : {
+        "tags" : [ "支付管理" ],
+        "summary" : "根据支付号查询",
+        "description" : "通过支付号精确查询支付记录",
+        "operationId" : "getPaymentByNumber",
+        "parameters" : [ {
+          "name" : "paymentNumber",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultPaymentResultDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/order/{orderId}" : {
+      "get" : {
+        "tags" : [ "订单管理" ],
+        "summary" : "根据ID查询订单",
+        "description" : "通过订单ID获取订单详细信息",
+        "operationId" : "getOrderById",
+        "parameters" : [ {
+          "name" : "orderId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultOrderInfoDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/order/user/list" : {
+      "get" : {
+        "tags" : [ "订单管理" ],
+        "summary" : "获取用户订单列表",
+        "description" : "获取当前登录用户的所有订单",
+        "operationId" : "getUserOrders",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultListOrderInfoDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/order/status/{status}" : {
+      "get" : {
+        "tags" : [ "订单管理" ],
+        "summary" : "根据状态查询订单",
+        "description" : "根据订单状态（待支付、已取消等）筛选订单",
+        "operationId" : "getOrdersByStatus",
+        "parameters" : [ {
+          "name" : "status",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultListOrderInfoDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/order/number/{orderNumber}" : {
+      "get" : {
+        "tags" : [ "订单管理" ],
+        "summary" : "根据订单号查询",
+        "description" : "通过订单号精确查询订单",
+        "operationId" : "getOrderByNumber",
+        "parameters" : [ {
+          "name" : "orderNumber",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultOrderInfoDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/contact/list/{userId}" : {
+      "get" : {
+        "tags" : [ "联系人管理" ],
+        "summary" : "获取联系人列表",
+        "description" : "获取指定用户的所有常用联系人",
+        "operationId" : "getContacts",
+        "parameters" : [ {
+          "name" : "userId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultListContact"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ai/history/{sessionId}" : {
+      "get" : {
+        "tags" : [ "AI助手" ],
+        "summary" : "获取聊天历史",
+        "description" : "获取指定会话ID的聊天记录",
+        "operationId" : "getHistory",
+        "parameters" : [ {
+          "name" : "sessionId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultListChatMessageDTO"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "AI助手" ],
+        "summary" : "清除聊天历史",
+        "description" : "删除指定会话ID的聊天记录",
+        "operationId" : "clearHistory",
+        "parameters" : [ {
+          "name" : "sessionId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultVoid"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ai/health" : {
+      "get" : {
+        "tags" : [ "AI助手" ],
+        "summary" : "健康检查",
+        "description" : "AI助手服务健康状态检查",
+        "operationId" : "health",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "type" : "object",
+                  "additionalProperties" : {
+                    "type" : "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/train/delete/{id}" : {
+      "delete" : {
+        "tags" : [ "列车管理" ],
+        "summary" : "删除列车",
+        "description" : "根据ID删除列车信息",
+        "operationId" : "deleteTrain",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/contact/delete/{contactId}" : {
+      "delete" : {
+        "tags" : [ "联系人管理" ],
+        "summary" : "删除联系人",
+        "description" : "删除指定联系人ID的联系人",
+        "operationId" : "deleteContact",
+        "parameters" : [ {
+          "name" : "contactId",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultBoolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components" : {
+    "schemas" : {
+      "UserInfoDTO" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "username" : {
+            "type" : "string"
+          },
+          "idCard" : {
+            "type" : "string"
+          },
+          "realName" : {
+            "type" : "string"
+          },
+          "phone" : {
+            "type" : "string"
+          },
+          "email" : {
+            "type" : "string"
+          },
+          "userType" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "status" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "createTime" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "updateTime" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "ResultString" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "type" : "string"
+          },
+          "timestamp" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "TicketInventoryCreateDTO" : {
+        "required" : [ "availableCount", "seatType", "totalCount", "trainId" ],
+        "type" : "object",
+        "properties" : {
+          "trainId" : {
+            "type" : "integer",
+            "description" : "列车ID",
+            "format" : "int64",
+            "example" : 1
+          },
+          "seatType" : {
+            "type" : "string",
+            "description" : "座位类型",
+            "example" : "SECOND",
+            "enum" : [ "BUSINESS", "FIRST", "SECOND", "SOFT_SLEEPER", "HARD_SLEEPER" ]
+          },
+          "totalCount" : {
+            "minimum" : 0,
+            "type" : "integer",
+            "description" : "总票数",
+            "format" : "int32",
+            "example" : 100
+          },
+          "availableCount" : {
+            "minimum" : 0,
+            "type" : "integer",
+            "description" : "可用票数",
+            "format" : "int32",
+            "example" : 80
+          },
+          "price" : {
+            "type" : "number",
+            "description" : "票价，单位元",
+            "example" : 553.5
+          },
+          "status" : {
+            "type" : "integer",
+            "description" : "状态 0-正常 1-禁用",
+            "format" : "int32",
+            "example" : 0
+          }
+        },
+        "description" : "票务配置创建/更新请求"
+      },
+      "ResultTicketInventoryDTO" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/TicketInventoryDTO"
+          },
+          "timestamp" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "TicketInventoryDTO" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "description" : "配置ID",
+            "format" : "int64"
+          },
+          "trainId" : {
+            "type" : "integer",
+            "description" : "列车ID",
+            "format" : "int64"
+          },
+          "trainNumber" : {
+            "type" : "string",
+            "description" : "车次号"
+          },
+          "seatType" : {
+            "type" : "string",
+            "description" : "座位类型",
+            "example" : "SECOND"
+          },
+          "seatTypeName" : {
+            "type" : "string",
+            "description" : "座位类型中文名",
+            "example" : "二等座"
+          },
+          "totalCount" : {
+            "type" : "integer",
+            "description" : "总票数",
+            "format" : "int32",
+            "example" : 100
+          },
+          "availableCount" : {
+            "type" : "integer",
+            "description" : "可用票数",
+            "format" : "int32",
+            "example" : 80
+          },
+          "soldCount" : {
+            "type" : "integer",
+            "description" : "已售票数",
+            "format" : "int32",
+            "example" : 20
+          },
+          "price" : {
+            "type" : "number",
+            "description" : "票价，单位元",
+            "example" : 553.5
+          },
+          "version" : {
+            "type" : "integer",
+            "description" : "版本号，用于乐观锁",
+            "format" : "int32"
+          },
+          "status" : {
+            "type" : "integer",
+            "description" : "状态 0-正常 1-禁用",
+            "format" : "int32",
+            "example" : 0
+          },
+          "createTime" : {
+            "type" : "string",
+            "description" : "创建时间",
+            "format" : "date-time"
+          },
+          "updateTime" : {
+            "type" : "string",
+            "description" : "更新时间",
+            "format" : "date-time"
+          },
+          "inventoryPercent" : {
+            "type" : "number",
+            "format" : "double"
+          }
+        },
+        "description" : "票务配置响应"
+      },
+      "StationInfoDTO" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "stationCode" : {
+            "type" : "string"
+          },
+          "stationName" : {
+            "type" : "string"
+          },
+          "city" : {
+            "type" : "string"
+          },
+          "province" : {
+            "type" : "string"
+          },
+          "pinyin" : {
+            "type" : "string"
+          },
+          "pinyinShort" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "createTime" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "updateTime" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "cityName" : {
+            "type" : "string"
+          },
+          "fullAddress" : {
+            "type" : "string"
+          }
+        }
+      },
+      "ResultBoolean" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "type" : "boolean"
+          },
+          "timestamp" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "WaitlistCreateDTO" : {
+        "required" : [ "departureDate", "endStationId", "seatType", "startStationId", "trainId" ],
+        "type" : "object",
+        "properties" : {
+          "trainId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "startStationId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "endStationId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "departureDate" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "seatType" : {
+            "type" : "string"
+          }
+        }
+      },
+      "ResultWaitlistOrderDTO" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/WaitlistOrderDTO"
+          },
+          "timestamp" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "WaitlistOrderDTO" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "waitlistNumber" : {
+            "type" : "string"
+          },
+          "userId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "username" : {
+            "type" : "string"
+          },
+          "trainId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "trainNumber" : {
+            "type" : "string"
+          },
+          "startStationId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "startStationName" : {
+            "type" : "string"
+          },
+          "endStationId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "endStationName" : {
+            "type" : "string"
+          },
+          "seatType" : {
+            "type" : "string"
+          },
+          "seatTypeName" : {
+            "type" : "string"
+          },
+          "departureDate" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "statusText" : {
+            "type" : "string"
+          },
+          "createTime" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "expireTime" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "orderNumber" : {
+            "type" : "string"
+          }
+        }
+      },
+      "UserRegisterDTO" : {
+        "required" : [ "idCard", "password", "phone", "realName", "username" ],
+        "type" : "object",
+        "properties" : {
+          "username" : {
+            "maxLength" : 20,
+            "minLength" : 3,
+            "type" : "string"
+          },
+          "password" : {
+            "maxLength" : 20,
+            "minLength" : 6,
+            "type" : "string"
+          },
+          "idCard" : {
+            "pattern" : "\\d{17}[\\d|x|X]|\\d{15}",
+            "type" : "string"
+          },
+          "realName" : {
+            "maxLength" : 10,
+            "minLength" : 2,
+            "type" : "string"
+          },
+          "phone" : {
+            "pattern" : "1[3-9]\\d{9}",
+            "type" : "string"
+          },
+          "email" : {
+            "type" : "string"
+          }
+        }
+      },
+      "ResultUserInfoDTO" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/UserInfoDTO"
+          },
+          "timestamp" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "UserLoginDTO" : {
+        "required" : [ "password", "username" ],
+        "type" : "object",
+        "properties" : {
+          "username" : {
+            "maxLength" : 20,
+            "minLength" : 3,
+            "type" : "string"
+          },
+          "password" : {
+            "maxLength" : 20,
+            "minLength" : 6,
+            "type" : "string"
+          }
+        }
+      },
+      "LocalTime" : {
+        "type" : "object",
+        "properties" : {
+          "hour" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "minute" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "second" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "nano" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "TrainInfoDTO" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "trainNumber" : {
+            "type" : "string"
+          },
+          "trainType" : {
+            "type" : "string"
+          },
+          "startStationId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "endStationId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "startStationName" : {
+            "type" : "string"
+          },
+          "endStationName" : {
+            "type" : "string"
+          },
+          "startTime" : {
+            "$ref" : "#/components/schemas/LocalTime"
+          },
+          "endTime" : {
+            "$ref" : "#/components/schemas/LocalTime"
+          },
+          "duration" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "durationText" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "stationList" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/TrainStationDTO"
+            }
+          },
+          "createTime" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "updateTime" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "TrainStationDTO" : {
+        "type" : "object",
+        "properties" : {
+          "stationId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "stationName" : {
+            "type" : "string"
+          },
+          "stationOrder" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "arrivalTime" : {
+            "$ref" : "#/components/schemas/LocalTime"
+          },
+          "departureTime" : {
+            "$ref" : "#/components/schemas/LocalTime"
+          },
+          "stopMinutes" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "isSale" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "TrainQueryDTO" : {
+        "type" : "object",
+        "properties" : {
+          "trainNumber" : {
+            "type" : "string"
+          },
+          "startStationId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "endStationId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "trainType" : {
+            "type" : "string"
+          },
+          "departureDate" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "pageNum" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "pageSize" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "ResultListTrainInfoDTO" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/TrainInfoDTO"
+            }
+          },
+          "timestamp" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "TicketQueryDTO" : {
+        "required" : [ "arrivalStationId", "departureStationId" ],
+        "type" : "object",
+        "properties" : {
+          "departureStationId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "arrivalStationId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "departureDate" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "trainId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "trainType" : {
+            "type" : "string"
+          },
+          "seatType" : {
+            "type" : "string"
+          },
+          "pageNum" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "pageSize" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "ResultListTicketInfoDTO" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/TicketInfoDTO"
+            }
+          },
+          "timestamp" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "TicketInfoDTO" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "trainId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "trainNumber" : {
+            "type" : "string"
+          },
+          "trainType" : {
+            "type" : "string"
+          },
+          "departureStationId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "departureStationName" : {
+            "type" : "string"
+          },
+          "arrivalStationId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "arrivalStationName" : {
+            "type" : "string"
+          },
+          "departureDate" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "departureTime" : {
+            "$ref" : "#/components/schemas/LocalTime"
+          },
+          "arrivalTime" : {
+            "$ref" : "#/components/schemas/LocalTime"
+          },
+          "seatType" : {
+            "type" : "string"
+          },
+          "seatTypeName" : {
+            "type" : "string"
+          },
+          "availableCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "price" : {
+            "type" : "number"
+          },
+          "priceText" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "PaymentDTO" : {
+        "required" : [ "orderId", "paymentAmount", "paymentMethod" ],
+        "type" : "object",
+        "properties" : {
+          "orderId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "paymentAmount" : {
+            "type" : "number"
+          },
+          "paymentMethod" : {
+            "type" : "string"
+          },
+          "paymentChannel" : {
+            "type" : "string"
+          },
+          "remark" : {
+            "type" : "string"
+          }
+        }
+      },
+      "PaymentResultDTO" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "orderId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "orderNumber" : {
+            "type" : "string"
+          },
+          "paymentNumber" : {
+            "type" : "string"
+          },
+          "paymentAmount" : {
+            "type" : "number"
+          },
+          "paymentAmountText" : {
+            "type" : "string"
+          },
+          "orderAmount" : {
+            "type" : "number"
+          },
+          "orderAmountText" : {
+            "type" : "string"
+          },
+          "paymentMethod" : {
+            "type" : "string"
+          },
+          "paymentMethodText" : {
+            "type" : "string"
+          },
+          "paymentChannel" : {
+            "type" : "string"
+          },
+          "paymentStatus" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "paymentStatusText" : {
+            "type" : "string"
+          },
+          "paymentTime" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "createTime" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "updateTime" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "success" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "ResultPaymentResultDTO" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/PaymentResultDTO"
+          },
+          "timestamp" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "OrderCreateDTO" : {
+        "required" : [ "arrivalStationId", "departureDate", "departureStationId", "passengerIdCard", "passengerRealName", "seatType", "trainId" ],
+        "type" : "object",
+        "properties" : {
+          "trainId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "departureStationId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "arrivalStationId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "departureDate" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "seatType" : {
+            "type" : "string"
+          },
+          "passengerIdCard" : {
+            "pattern" : "\\d{17}[\\d|x|X]|\\d{15}",
+            "type" : "string"
+          },
+          "passengerRealName" : {
+            "type" : "string"
+          },
+          "ticketCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "OrderInfoDTO" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "orderNumber" : {
+            "type" : "string"
+          },
+          "userId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "username" : {
+            "type" : "string"
+          },
+          "trainId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "trainNumber" : {
+            "type" : "string"
+          },
+          "departureStationId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "departureStationName" : {
+            "type" : "string"
+          },
+          "arrivalStationId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "arrivalStationName" : {
+            "type" : "string"
+          },
+          "departureDate" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "departureTime" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "arrivalTime" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "seatType" : {
+            "type" : "string"
+          },
+          "seatTypeName" : {
+            "type" : "string"
+          },
+          "passengerIdCard" : {
+            "type" : "string"
+          },
+          "passengerRealName" : {
+            "type" : "string"
+          },
+          "ticketPrice" : {
+            "type" : "number"
+          },
+          "ticketPriceText" : {
+            "type" : "string"
+          },
+          "orderStatus" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "orderStatusText" : {
+            "type" : "string"
+          },
+          "payStatus" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "payStatusText" : {
+            "type" : "string"
+          },
+          "payTime" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "expireTime" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "createTime" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "updateTime" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "expired" : {
+            "type" : "boolean"
+          },
+          "remainingPayTime" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "ResultOrderInfoDTO" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/OrderInfoDTO"
+          },
+          "timestamp" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "ContactDTO" : {
+        "type" : "object",
+        "properties" : {
+          "realName" : {
+            "type" : "string"
+          },
+          "phone" : {
+            "type" : "string"
+          },
+          "idCard" : {
+            "type" : "string"
+          },
+          "type" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "ResultMapStringString" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          },
+          "timestamp" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "AiChatRequestDTO" : {
+        "required" : [ "message" ],
+        "type" : "object",
+        "properties" : {
+          "message" : {
+            "type" : "string"
+          },
+          "sessionId" : {
+            "type" : "string"
+          },
+          "autoQuery" : {
+            "type" : "boolean"
+          }
+        }
+      },
+      "AiChatResponseDTO" : {
+        "type" : "object",
+        "properties" : {
+          "sessionId" : {
+            "type" : "string"
+          },
+          "success" : {
+            "type" : "boolean"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "params" : {
+            "$ref" : "#/components/schemas/TicketQueryParamDTO"
+          },
+          "tickets" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/TicketInfoDTO"
+            }
+          },
+          "paramMissingCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "missingParams" : {
+            "type" : "string"
+          }
+        }
+      },
+      "ResultAiChatResponseDTO" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/AiChatResponseDTO"
+          },
+          "timestamp" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "TicketQueryParamDTO" : {
+        "type" : "object",
+        "properties" : {
+          "from" : {
+            "type" : "string"
+          },
+          "to" : {
+            "type" : "string"
+          },
+          "date" : {
+            "type" : "string"
+          },
+          "timeRange" : {
+            "type" : "string"
+          },
+          "preference" : {
+            "type" : "string"
+          }
+        }
+      },
+      "ResultListWaitlistOrderDTO" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/WaitlistOrderDTO"
+            }
+          },
+          "timestamp" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "ResultListWaitlistTicketDTO" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/WaitlistTicketDTO"
+            }
+          },
+          "timestamp" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "WaitlistTicketDTO" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "ticketNumber" : {
+            "type" : "string"
+          },
+          "originalOrderNumber" : {
+            "type" : "string"
+          },
+          "trainId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "trainNumber" : {
+            "type" : "string"
+          },
+          "startStationId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "startStationName" : {
+            "type" : "string"
+          },
+          "endStationId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "endStationName" : {
+            "type" : "string"
+          },
+          "departureDate" : {
+            "type" : "string",
+            "format" : "date"
+          },
+          "seatType" : {
+            "type" : "string"
+          },
+          "seatTypeName" : {
+            "type" : "string"
+          },
+          "carriageNumber" : {
+            "type" : "string"
+          },
+          "seatNumber" : {
+            "type" : "string"
+          },
+          "price" : {
+            "type" : "number"
+          },
+          "priceText" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "statusText" : {
+            "type" : "string"
+          },
+          "source" : {
+            "type" : "string"
+          },
+          "createTime" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "ResultTrainInfoDTO" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/TrainInfoDTO"
+          },
+          "timestamp" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "ResultTicketInfoDTO" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/TicketInfoDTO"
+          },
+          "timestamp" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "TicketInventoryQueryDTO" : {
+        "type" : "object",
+        "properties" : {
+          "trainId" : {
+            "type" : "integer",
+            "description" : "列车ID",
+            "format" : "int64",
+            "example" : 1
+          },
+          "seatType" : {
+            "type" : "string",
+            "description" : "座位类型",
+            "example" : "SECOND"
+          },
+          "status" : {
+            "type" : "integer",
+            "description" : "状态 0-正常 1-禁用",
+            "format" : "int32",
+            "example" : 0
+          }
+        },
+        "description" : "票务配置查询条件"
+      },
+      "ResultListTicketInventoryDTO" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/TicketInventoryDTO"
+            }
+          },
+          "timestamp" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "ResultStationInfoDTO" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/StationInfoDTO"
+          },
+          "timestamp" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "ResultListStationInfoDTO" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/StationInfoDTO"
+            }
+          },
+          "timestamp" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "NonRefundableTicket" : {
+        "type" : "object",
+        "properties" : {
+          "ticketNumber" : {
+            "type" : "string"
+          },
+          "passengerName" : {
+            "type" : "string"
+          },
+          "trainNumber" : {
+            "type" : "string"
+          },
+          "departureTime" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "seatInfo" : {
+            "type" : "string"
+          },
+          "reason" : {
+            "type" : "string"
+          },
+          "suggestion" : {
+            "type" : "string"
+          },
+          "displayInfo" : {
+            "type" : "string"
+          }
+        }
+      },
+      "RefundCheckResult" : {
+        "type" : "object",
+        "properties" : {
+          "refundable" : {
+            "type" : "boolean"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "checkId" : {
+            "type" : "string"
+          },
+          "orderNumber" : {
+            "type" : "string"
+          },
+          "orderStatus" : {
+            "type" : "string"
+          },
+          "orderCreateTime" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "refundableTickets" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/RefundableTicket"
+            }
+          },
+          "nonRefundableTickets" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/NonRefundableTicket"
+            }
+          },
+          "totalTicketPrice" : {
+            "type" : "number"
+          },
+          "totalRefundAmount" : {
+            "type" : "number"
+          },
+          "totalServiceFee" : {
+            "type" : "number"
+          },
+          "totalActualRefund" : {
+            "type" : "number"
+          },
+          "refundRate" : {
+            "type" : "string"
+          },
+          "applicableRule" : {
+            "$ref" : "#/components/schemas/RefundRuleInfo"
+          },
+          "latestRefundTime" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "remainingSeconds" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "restrictions" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "suggestions" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "refundableCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "partialRefund" : {
+            "type" : "boolean"
+          },
+          "totalFeeDisplay" : {
+            "type" : "string"
+          },
+          "totalTicketCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "totalRefundDisplay" : {
+            "type" : "string"
+          },
+          "nonRefundableCount" : {
+            "type" : "integer",
+            "format" : "int32"
+          }
+        }
+      },
+      "RefundRuleInfo" : {
+        "type" : "object",
+        "properties" : {
+          "ruleId" : {
+            "type" : "string"
+          },
+          "ruleName" : {
+            "type" : "string"
+          },
+          "ruleDescription" : {
+            "type" : "string"
+          },
+          "hoursBeforeDeparture" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "timeRangeDescription" : {
+            "type" : "string"
+          },
+          "refundRate" : {
+            "type" : "number"
+          },
+          "refundRateDisplay" : {
+            "type" : "string"
+          },
+          "serviceFeeRate" : {
+            "type" : "number"
+          },
+          "minServiceFee" : {
+            "type" : "number"
+          },
+          "maxServiceFee" : {
+            "type" : "number"
+          },
+          "fixedServiceFee" : {
+            "type" : "number"
+          },
+          "applicableTrainTypes" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "applicableSeatTypes" : {
+            "type" : "array",
+            "items" : {
+              "type" : "string"
+            }
+          },
+          "applicableToStudent" : {
+            "type" : "boolean"
+          },
+          "applicableToGroup" : {
+            "type" : "boolean"
+          },
+          "allowPartialRefund" : {
+            "type" : "boolean"
+          },
+          "allowOnlineRefund" : {
+            "type" : "boolean"
+          },
+          "requireVerification" : {
+            "type" : "boolean"
+          },
+          "effectiveDate" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "expireDate" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "applicableCondition" : {
+            "type" : "string"
+          }
+        }
+      },
+      "RefundableTicket" : {
+        "type" : "object",
+        "properties" : {
+          "ticketNumber" : {
+            "type" : "string"
+          },
+          "passengerName" : {
+            "type" : "string"
+          },
+          "trainNumber" : {
+            "type" : "string"
+          },
+          "departureTime" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "seatInfo" : {
+            "type" : "string"
+          },
+          "ticketPrice" : {
+            "type" : "number"
+          },
+          "refundAmount" : {
+            "type" : "number"
+          },
+          "serviceFee" : {
+            "type" : "number"
+          },
+          "actualRefund" : {
+            "type" : "number"
+          },
+          "refundRate" : {
+            "type" : "string"
+          },
+          "refundRule" : {
+            "type" : "string"
+          },
+          "displayInfo" : {
+            "type" : "string"
+          }
+        }
+      },
+      "ResultRefundCheckResult" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/RefundCheckResult"
+          },
+          "timestamp" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "ResultListOrderInfoDTO" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/OrderInfoDTO"
+            }
+          },
+          "timestamp" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "Contact" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "userId" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "phone" : {
+            "type" : "string"
+          },
+          "idCard" : {
+            "type" : "string"
+          },
+          "type" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "isDefault" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "status" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "createTime" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "updateTime" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "ResultListContact" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/Contact"
+            }
+          },
+          "timestamp" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "ChatMessageDTO" : {
+        "type" : "object",
+        "properties" : {
+          "role" : {
+            "type" : "string"
+          },
+          "content" : {
+            "type" : "string"
+          },
+          "timestamp" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "ResultListChatMessageDTO" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/ChatMessageDTO"
+            }
+          },
+          "timestamp" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "ResultVoid" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "type" : "object"
+          },
+          "timestamp" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      }
+    }
+  }
+}

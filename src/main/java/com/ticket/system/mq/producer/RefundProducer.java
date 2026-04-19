@@ -13,8 +13,8 @@ public class RefundProducer {
 
     public void send(RefundMessage message) {
         rabbitTemplate.convertAndSend(
-                "order.exchange",
-                "order.refund",
+                "refund.exchange",
+                "refund.key",
                 message
         );
 

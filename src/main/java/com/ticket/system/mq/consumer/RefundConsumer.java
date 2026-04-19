@@ -54,38 +54,56 @@ public class RefundConsumer {
                 return;
             }
 
+            // 查询订单
+            Order order = orderMapper.selectById(orderId);
+            if (order == null) {
+                log.warn("退款订单不存在: orderId={}", orderId);
+                return;
+            }
+
+            // 幂等性检查：检查订单是否已退款
+            if (order.getOrderStatus() == 4) {
+                log.warn("订单已退款，跳过处理: orderId={}", orderId);
+                return;
+            }
+
+            // 查询支付记录（可能不存在，如余额支付）
             Payment payment = paymentMapper.selectByOrderId(orderId);
-            if (payment == null || payment.getPaymentStatus() != 1) {
-                return;
+            if (payment != null) {
+                if (payment.getPaymentStatus() != 1) {
+                    return;
+                }
+                // 检查是否已退款
+                if (payment.getRefundStatus() != 0) {
+                    log.warn("支付记录已处于退款状态，跳过处理: orderId={}, refundStatus={}", orderId, payment.getRefundStatus());
+                    return;
+                }
+
+                // 原子标记退款中
+                int updated = paymentMapper.lockRefund(orderId);
+                if (updated == 0) {
+                    return;
+                }
+
+                // 更新为已退款
+                paymentMapper.updateRefundSuccessWithLock(orderId);
             }
 
-            int updated = paymentMapper.lockRefund(orderId);
-            if (updated == 0) {
-                return;
-            }
-
-            paymentMapper.updateRefundSuccess(orderId);
-            orderMapper.cancelOrder(orderId);
+            // 更新订单状态为已退款（4）
+            orderMapper.updateOrderStatus(orderId, 4);
 
             // 退款成功后，恢复票务库存
             try {
-                Order order = orderMapper.selectById(orderId);
-                if (order != null) {
-                    // 查询库存记录
-                    TicketInventory inventory = ticketInventoryMapper.selectForUpdate(
-                            order.getTrainId(),
-                            order.getDepartureDate().toLocalDate().toString(),
-                            order.getSeatType());
-                    if (inventory != null) {
-                        // 恢复库存（+1）
-                        int restoreResult = ticketInventoryMapper.increaseInventory(
-                                inventory.getId(),
-                                inventory.getAvailableCount() + 1,
-                                inventory.getVersion());
-                        if (restoreResult > 0) {
-                            log.info("退票库存已恢复: orderId={}, trainId={}, 恢复后库存={}",
-                                    orderId, order.getTrainId(), inventory.getAvailableCount() + 1);
-                        }
+                TicketInventory inventory = ticketInventoryMapper.selectForUpdate(
+                        order.getTrainId(),
+                        order.getSeatType());
+                if (inventory != null) {
+                    // 原子增加库存（修复并发丢失更新问题）
+                    int restoreResult = ticketInventoryMapper.increaseInventoryAtomic(
+                            inventory.getId(), 1);
+                    if (restoreResult > 0) {
+                        log.info("退票库存已恢复: orderId={}, trainId={}, seatType={}",
+                                orderId, order.getTrainId(), order.getSeatType());
                     }
                 }
             } catch (Exception e) {
