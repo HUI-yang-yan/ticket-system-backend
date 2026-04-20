@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ticket.system.mapper.RefundRecordMapper">
+
+    <resultMap id="BaseResultMap" type="com.ticket.system.entity.RefundRecord">
+        <id column="id" property="id" jdbcType="BIGINT"/>
+        <result column="refund_number" property="refundNumber" jdbcType="VARCHAR"/>
+        <result column="order_number" property="orderNumber" jdbcType="VARCHAR"/>
+        <result column="user_id" property="userId" jdbcType="BIGINT"/>
+        <result column="refund_amount" property="refundAmount" jdbcType="DECIMAL"/>
+        <result column="actual_refund_amount" property="actualRefundAmount" jdbcType="DECIMAL"/>
+        <result column="service_fee" property="serviceFee" jdbcType="DECIMAL"/>
+        <result column="refund_reason" property="refundReason" jdbcType="VARCHAR"/>
+        <result column="refund_reason_code" property="refundReasonCode" jdbcType="VARCHAR"/>
+        <result column="status" property="status" jdbcType="VARCHAR"/>
+        <result column="payment_method" property="paymentMethod" jdbcType="VARCHAR"/>
+        <result column="refund_method" property="refundMethod" jdbcType="VARCHAR"/>
+        <result column="bank_name" property="bankName" jdbcType="VARCHAR"/>
+        <result column="bank_card_no" property="bankCardNo" jdbcType="VARCHAR"/>
+        <result column="card_holder_name" property="cardHolderName" jdbcType="VARCHAR"/>
+        <result column="channel_refund_no" property="channelRefundNo" jdbcType="VARCHAR"/>
+        <result column="remark" property="remark" jdbcType="VARCHAR"/>
+        <result column="apply_time" property="applyTime" jdbcType="TIMESTAMP"/>
+        <result column="process_time" property="processTime" jdbcType="TIMESTAMP"/>
+        <result column="complete_time" property="completeTime" jdbcType="TIMESTAMP"/>
+        <result column="create_time" property="createTime" jdbcType="TIMESTAMP"/>
+        <result column="update_time" property="updateTime" jdbcType="TIMESTAMP"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.ticket.system.entity.RefundRecord" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO refund_record (
+            refund_number, order_number, user_id, refund_amount, actual_refund_amount,
+            service_fee, refund_reason, refund_reason_code, status, payment_method,
+            refund_method, bank_name, bank_card_no, card_holder_name, channel_refund_no,
+            remark, apply_time, process_time, complete_time, create_time, update_time
+        ) VALUES (
+            #{refundNumber}, #{orderNumber}, #{userId}, #{refundAmount}, #{actualRefundAmount},
+            #{serviceFee}, #{refundReason}, #{refundReasonCode}, #{status}, #{paymentMethod},
+            #{refundMethod}, #{bankName}, #{bankCardNo}, #{cardHolderName}, #{channelRefundNo},
+            #{remark}, #{applyTime}, #{processTime}, #{completeTime}, NOW(), NOW()
+        )
+    </insert>
+
+    <update id="update" parameterType="com.ticket.system.entity.RefundRecord">
+        UPDATE refund_record
+        <set>
+            <if test="refundAmount != null">refund_amount = #{refundAmount},</if>
+            <if test="actualRefundAmount != null">actual_refund_amount = #{actualRefundAmount},</if>
+            <if test="serviceFee != null">service_fee = #{serviceFee},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="processTime != null">process_time = #{processTime},</if>
+            <if test="completeTime != null">complete_time = #{completeTime},</if>
+            <if test="channelRefundNo != null">channel_refund_no = #{channelRefundNo},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            update_time = NOW()
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT * FROM refund_record WHERE id = #{id}
+    </select>
+
+    <select id="selectByRefundNumber" resultMap="BaseResultMap">
+        SELECT * FROM refund_record WHERE refund_number = #{refundNumber}
+    </select>
+
+    <select id="selectByOrderNumber" resultMap="BaseResultMap">
+        SELECT * FROM refund_record WHERE order_number = #{orderNumber}
+    </select>
+
+    <select id="selectByUserId" resultMap="BaseResultMap">
+        SELECT * FROM refund_record WHERE user_id = #{userId} ORDER BY create_time DESC
+    </select>
+
+    <select id="selectByStatus" resultMap="BaseResultMap">
+        SELECT * FROM refund_record WHERE status = #{status} ORDER BY create_time DESC
+    </select>
+</mapper>

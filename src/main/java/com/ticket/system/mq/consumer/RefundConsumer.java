@@ -8,6 +8,8 @@ import com.ticket.system.entity.TicketInventory;
 import com.ticket.system.mapper.OrderMapper;
 import com.ticket.system.mapper.PaymentMapper;
 import com.ticket.system.mapper.TicketInventoryMapper;
+import com.ticket.system.mapper.TrainSegmentStockMapper;
+import com.ticket.system.mapper.TrainStationMapper;
 import com.ticket.system.message.RefundMessage;
 import com.ticket.system.mq.producer.RefundProducer;
 import com.ticket.system.service.WaitlistService;
@@ -38,6 +40,10 @@ public class RefundConsumer {
     private WaitlistService waitlistService;
     @Autowired
     private TicketInventoryMapper ticketInventoryMapper;
+    @Autowired
+    private TrainStationMapper trainStationMapper;
+    @Autowired
+    private TrainSegmentStockMapper trainSegmentStockMapper;
 
     @RabbitListener(queues = "refund.queue")
     public void handleRefund(RefundMessage msg) {
@@ -92,18 +98,22 @@ public class RefundConsumer {
             // 更新订单状态为已退款（4）
             orderMapper.updateOrderStatus(orderId, 4);
 
-            // 退款成功后，恢复票务库存
+            // 退款成功后，恢复区段票务库存
             try {
-                TicketInventory inventory = ticketInventoryMapper.selectForUpdate(
-                        order.getTrainId(),
-                        order.getSeatType());
-                if (inventory != null) {
-                    // 原子增加库存（修复并发丢失更新问题）
-                    int restoreResult = ticketInventoryMapper.increaseInventoryAtomic(
-                            inventory.getId(), 1);
+                Integer departureIndex = trainStationMapper.selectStationIndexByTrainIdAndStationId(
+                        order.getTrainId(), order.getDepartureStationId());
+                Integer arrivalIndex = trainStationMapper.selectStationIndexByTrainIdAndStationId(
+                        order.getTrainId(), order.getArrivalStationId());
+                if (departureIndex != null && arrivalIndex != null) {
+                    int restoreResult = trainSegmentStockMapper.restoreSegmentStock(
+                            order.getTrainId(),
+                            order.getDepartureDate().toLocalDate(),
+                            order.getSeatType(),
+                            departureIndex,
+                            arrivalIndex);
                     if (restoreResult > 0) {
-                        log.info("退票库存已恢复: orderId={}, trainId={}, seatType={}",
-                                orderId, order.getTrainId(), order.getSeatType());
+                        log.info("退票区段库存已恢复: orderId={}, trainId={}, seatType={}, departureIndex={}, arrivalIndex={}",
+                                orderId, order.getTrainId(), order.getSeatType(), departureIndex, arrivalIndex);
                     }
                 }
             } catch (Exception e) {

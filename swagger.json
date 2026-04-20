@@ -30,6 +30,9 @@
     "name" : "票务配置管理",
     "description" : "车票库存配置管理，用于配置车次座位类型的总票数、可用票数及票价"
   }, {
+    "name" : "知识库管理",
+    "description" : "管理员上传、管理知识文档"
+  }, {
     "name" : "用户管理",
     "description" : "用户注册、登录、信息管理"
   }, {
@@ -180,6 +183,112 @@
               "*/*" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ResultBoolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/knowledge/{id}" : {
+      "get" : {
+        "tags" : [ "知识库管理" ],
+        "summary" : "获取知识文档",
+        "description" : "根据ID获取知识文档详情",
+        "operationId" : "getDocument",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultKnowledgeDocument"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put" : {
+        "tags" : [ "知识库管理" ],
+        "summary" : "更新知识文档",
+        "description" : "重新上传文件更新知识文档",
+        "operationId" : "updateDocument",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }, {
+          "name" : "category",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "required" : [ "file" ],
+                "type" : "object",
+                "properties" : {
+                  "file" : {
+                    "type" : "string",
+                    "format" : "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultString"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "tags" : [ "知识库管理" ],
+        "summary" : "删除知识文档",
+        "description" : "删除指定的知识文档及其文件",
+        "operationId" : "deleteDocument",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultString"
                 }
               }
             }
@@ -1113,6 +1222,80 @@
                   "additionalProperties" : {
                     "type" : "object"
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/knowledge/{id}/toggle-status" : {
+      "post" : {
+        "tags" : [ "知识库管理" ],
+        "summary" : "切换知识文档状态",
+        "description" : "启用/禁用知识文档",
+        "operationId" : "toggleStatus",
+        "parameters" : [ {
+          "name" : "id",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/knowledge/upload" : {
+      "post" : {
+        "tags" : [ "知识库管理" ],
+        "summary" : "上传知识文档",
+        "description" : "上传 .md 格式的知识文档到知识库",
+        "operationId" : "uploadDocument",
+        "parameters" : [ {
+          "name" : "category",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "default" : "通用规则"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "required" : [ "file" ],
+                "type" : "object",
+                "properties" : {
+                  "file" : {
+                    "type" : "string",
+                    "format" : "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultString"
                 }
               }
             }
@@ -2134,6 +2317,54 @@
                   "additionalProperties" : {
                     "type" : "object"
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/knowledge/list" : {
+      "get" : {
+        "tags" : [ "知识库管理" ],
+        "summary" : "获取知识文档列表",
+        "description" : "获取所有知识文档",
+        "operationId" : "listDocuments",
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultListKnowledgeDocument"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/knowledge/category/{category}" : {
+      "get" : {
+        "tags" : [ "知识库管理" ],
+        "summary" : "按分类获取知识文档",
+        "description" : "根据分类获取知识文档列表",
+        "operationId" : "listByCategory",
+        "parameters" : [ {
+          "name" : "category",
+          "in" : "path",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultListKnowledgeDocument"
                 }
               }
             }
@@ -3275,6 +3506,9 @@
           },
           "missingParams" : {
             "type" : "string"
+          },
+          "intentType" : {
+            "type" : "string"
           }
         }
       },
@@ -3658,15 +3892,9 @@
               "type" : "string"
             }
           },
-          "refundableCount" : {
+          "nonRefundableCount" : {
             "type" : "integer",
             "format" : "int32"
-          },
-          "partialRefund" : {
-            "type" : "boolean"
-          },
-          "totalFeeDisplay" : {
-            "type" : "string"
           },
           "totalTicketCount" : {
             "type" : "integer",
@@ -3675,9 +3903,15 @@
           "totalRefundDisplay" : {
             "type" : "string"
           },
-          "nonRefundableCount" : {
+          "refundableCount" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "totalFeeDisplay" : {
+            "type" : "string"
+          },
+          "partialRefund" : {
+            "type" : "boolean"
           }
         }
       },
@@ -3934,6 +4168,83 @@
             "type" : "array",
             "items" : {
               "$ref" : "#/components/schemas/ChatMessageDTO"
+            }
+          },
+          "timestamp" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "KnowledgeDocument" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "format" : "int64"
+          },
+          "title" : {
+            "type" : "string"
+          },
+          "filename" : {
+            "type" : "string"
+          },
+          "category" : {
+            "type" : "string"
+          },
+          "content" : {
+            "type" : "string"
+          },
+          "filePath" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "createdAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          },
+          "updatedAt" : {
+            "type" : "string",
+            "format" : "date-time"
+          }
+        }
+      },
+      "ResultKnowledgeDocument" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "$ref" : "#/components/schemas/KnowledgeDocument"
+          },
+          "timestamp" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "ResultListKnowledgeDocument" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "type" : "array",
+            "items" : {
+              "$ref" : "#/components/schemas/KnowledgeDocument"
             }
           },
           "timestamp" : {

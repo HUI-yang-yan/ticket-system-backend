@@ -45,15 +45,18 @@ public class OrderServiceImpl implements OrderService {
 
     @Autowired
     private OrderProducer orderProducer;
+
     @Autowired
     private StationMapper stationMapper;
 
     @Autowired
     private UserMapper userMapper;
+
     @Autowired
-    private PaymentService paymentService;
+    private TrainStationMapper trainStationMapper;
+
     @Autowired
-    private TicketInventoryMapper ticketInventoryMapper;
+    private TrainSegmentStockMapper trainSegmentStockMapper;
 
     @Override
     @Transactional
@@ -106,6 +109,65 @@ public class OrderServiceImpl implements OrderService {
             int result = orderMapper.insert(order);
             if (result <= 0) {
                 throw new BusinessException(ErrorCode.ORDER_CREATE_FAILED.getCode(), "创建订单失败");
+            }
+
+            // 预占区段库存（扣减 train_segment_stock）
+            Integer departureIndex = trainStationMapper.selectStationIndexByTrainIdAndStationId(
+                    order.getTrainId(), order.getDepartureStationId());
+            Integer arrivalIndex = trainStationMapper.selectStationIndexByTrainIdAndStationId(
+                    order.getTrainId(), order.getArrivalStationId());
+            if (departureIndex == null || arrivalIndex == null) {
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR.getCode(), "车站信息不存在");
+            }
+
+            // 获取分布式锁（按车次+日期+座位类型，防止同一座位类型超卖）
+            String ticketLockKey = RedisConstant.TICKET_LOCK_PREFIX + order.getTrainId() + ":" +
+                    order.getDepartureDate().toString() + ":" + order.getSeatType();
+            String ticketLockValue = UUID.randomUUID().toString();
+            try {
+                boolean ticketLocked = redisUtil.lock(ticketLockKey, ticketLockValue, 10, TimeUnit.SECONDS);
+                if (!ticketLocked) {
+                    throw new BusinessException(ErrorCode.SYSTEM_ERROR.getCode(), "系统繁忙，请稍后重试");
+                }
+
+                // 检查区段库存是否充足
+                Integer stockAvailable = trainSegmentStockMapper.checkSegmentStock(
+                        order.getTrainId(),
+                        order.getDepartureDate().toLocalDate(),
+                        order.getSeatType(),
+                        departureIndex,
+                        arrivalIndex);
+                if (stockAvailable == null || stockAvailable == 0) {
+                    throw new BusinessException(ErrorCode.STOCK_NOT_ENOUGH.getCode(), "库存不足");
+                }
+
+                // 扣减区段库存
+                int updated = trainSegmentStockMapper.reduceSegmentStock(
+                        order.getTrainId(),
+                        order.getDepartureDate().toLocalDate(),
+                        order.getSeatType(),
+                        departureIndex,
+                        arrivalIndex);
+                if (updated == 0) {
+                    throw new BusinessException(ErrorCode.STOCK_NOT_ENOUGH.getCode(), "库存扣减失败，请重试");
+                }
+
+                // 更新Redis缓存
+                String cacheKey = String.format("ticket:stock:%d:%s:%s:%d-%d",
+                        order.getTrainId(),
+                        order.getDepartureDate().toLocalDate().toString(),
+                        order.getSeatType(),
+                        departureIndex,
+                        arrivalIndex);
+                Integer cachedStock = (Integer) redisUtil.get(cacheKey);
+                if (cachedStock != null && cachedStock > 0) {
+                    redisUtil.set(cacheKey, cachedStock - 1, 5, TimeUnit.MINUTES);
+                }
+
+                log.info("订单创建预占区段库存成功: orderId={}, trainId={}, seatType={}, departureIndex={}, arrivalIndex={}",
+                        order.getId(), order.getTrainId(), order.getSeatType(), departureIndex, arrivalIndex);
+            } finally {
+                redisUtil.unlock(ticketLockKey, ticketLockValue);
             }
 
             // 发送订单创建消息到MQ
@@ -201,19 +263,33 @@ public class OrderServiceImpl implements OrderService {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR.getCode(), "取消订单失败");
         }
 
-        // 释放锁定的座位，恢复库存
+        // 释放锁定的座位，恢复区段库存
         try {
-            TicketInventory inventory = ticketInventoryMapper.selectForUpdate(
-                    order.getTrainId(),
-                    order.getSeatType());
-            if (inventory != null) {
-                int updated = ticketInventoryMapper.increaseInventory(
-                        inventory.getId(),
-                        inventory.getAvailableCount() + 1,
-                        inventory.getVersion());
+            Integer departureIndex = trainStationMapper.selectStationIndexByTrainIdAndStationId(
+                    order.getTrainId(), order.getDepartureStationId());
+            Integer arrivalIndex = trainStationMapper.selectStationIndexByTrainIdAndStationId(
+                    order.getTrainId(), order.getArrivalStationId());
+            if (departureIndex != null && arrivalIndex != null) {
+                int updated = trainSegmentStockMapper.restoreSegmentStock(
+                        order.getTrainId(),
+                        order.getDepartureDate().toLocalDate(),
+                        order.getSeatType(),
+                        departureIndex,
+                        arrivalIndex);
                 if (updated > 0) {
-                    log.info("取消订单库存已恢复: orderId={}, trainId={}, 恢复后库存={}",
-                            orderId, order.getTrainId(), inventory.getAvailableCount() + 1);
+                    // 更新Redis缓存
+                    String cacheKey = String.format("ticket:stock:%d:%s:%s:%d-%d",
+                            order.getTrainId(),
+                            order.getDepartureDate().toLocalDate().toString(),
+                            order.getSeatType(),
+                            departureIndex,
+                            arrivalIndex);
+                    Integer cachedStock = (Integer) redisUtil.get(cacheKey);
+                    if (cachedStock != null) {
+                        redisUtil.set(cacheKey, cachedStock + 1, 5, TimeUnit.MINUTES);
+                    }
+                    log.info("取消订单区段库存已恢复: orderId={}, trainId={}, departureIndex={}, arrivalIndex={}",
+                            orderId, order.getTrainId(), departureIndex, arrivalIndex);
                 }
             }
         } catch (Exception e) {

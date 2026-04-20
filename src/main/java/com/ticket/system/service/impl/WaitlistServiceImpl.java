@@ -53,6 +53,12 @@ public class WaitlistServiceImpl implements WaitlistService {
     @Autowired
     private RedisUtil redisUtil;
 
+    @Autowired
+    private TrainStationMapper trainStationMapper;
+
+    @Autowired
+    private TrainSegmentStockMapper trainSegmentStockMapper;
+
     private static final String WAITLIST_LOCK_PREFIX = "waitlist:lock:";
     private static final String WAITLIST_NUMBER_PREFIX = "W";
 
@@ -377,7 +383,29 @@ public class WaitlistServiceImpl implements WaitlistService {
 
         orderMapper.insert(order);
 
-        // 3. 标记候补订单成功
+        // 3. 扣减区段库存
+        try {
+            Integer departureIndex = trainStationMapper.selectStationIndexByTrainIdAndStationId(
+                    order.getTrainId(), order.getDepartureStationId());
+            Integer arrivalIndex = trainStationMapper.selectStationIndexByTrainIdAndStationId(
+                    order.getTrainId(), order.getArrivalStationId());
+            if (departureIndex != null && arrivalIndex != null) {
+                int updated = trainSegmentStockMapper.reduceSegmentStock(
+                        order.getTrainId(),
+                        order.getDepartureDate().toLocalDate(),
+                        order.getSeatType(),
+                        departureIndex,
+                        arrivalIndex);
+                if (updated > 0) {
+                    log.info("候补购票区段库存已扣减: orderNumber={}, trainId={}, seatType={}, departureIndex={}, arrivalIndex={}",
+                            order.getOrderNumber(), order.getTrainId(), order.getSeatType(), departureIndex, arrivalIndex);
+                }
+            }
+        } catch (Exception e) {
+            log.error("候补购票扣减库存异常: orderNumber={}", order.getOrderNumber(), e);
+        }
+
+        // 4. 标记候补订单成功
         waitlistOrder.setStatus(OrderConstant.WAITLIST_STATUS_SUCCESS);
         waitlistOrder.setUpdateTime(new Date());
         waitlistOrderMapper.update(waitlistOrder);

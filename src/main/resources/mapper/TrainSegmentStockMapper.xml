@@ -93,5 +93,43 @@
         </foreach>
     </insert>
 
+    <!-- 扣减区段库存（扣减从出发站到目的站之间所有区间的库存） -->
+    <update id="reduceSegmentStock">
+        UPDATE train_segment_stock tss
+        INNER JOIN train_station ts ON tss.train_id = ts.train_id AND tss.start_station_id = ts.station_id
+        SET tss.stock = tss.stock - 1,
+            tss.update_time = NOW()
+        WHERE tss.train_id = #{trainId}
+          AND tss.travel_date = #{departureDate}
+          AND tss.seat_type = #{seatType}
+          AND ts.station_index >= #{startIndex}
+          AND ts.station_index &lt; #{endIndex}
+          AND tss.stock > 0
+    </update>
+
+    <!-- 查询区段库存是否充足（检查从出发站到目的站之间所有区间） -->
+    <select id="checkSegmentStock" resultType="int">
+        SELECT COUNT(*) = SUM(CASE WHEN tss.stock > 0 THEN 1 ELSE 0 END)
+        FROM train_segment_stock tss
+        INNER JOIN train_station ts ON tss.train_id = ts.train_id AND tss.start_station_id = ts.station_id
+        WHERE tss.train_id = #{trainId}
+          AND tss.travel_date = #{departureDate}
+          AND tss.seat_type = #{seatType}
+          AND ts.station_index >= #{startIndex}
+          AND ts.station_index &lt; #{endIndex}
+    </select>
+
+    <!-- 恢复区段库存（取消订单时调用） -->
+    <update id="restoreSegmentStock">
+        UPDATE train_segment_stock tss
+        INNER JOIN train_station ts ON tss.train_id = ts.train_id AND tss.start_station_id = ts.station_id
+        SET tss.stock = tss.stock + 1,
+            tss.update_time = NOW()
+        WHERE tss.train_id = #{trainId}
+          AND tss.travel_date = #{departureDate}
+          AND tss.seat_type = #{seatType}
+          AND ts.station_index >= #{startIndex}
+          AND ts.station_index &lt; #{endIndex}
+    </update>
 
 </mapper>

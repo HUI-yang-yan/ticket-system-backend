@@ -44,4 +44,9 @@ public class AiChatResponseDTO {
      * 缺失参数描述
      */
     private String missingParams;
+
+    /**
+     * 本次对话的意图类型: QUERY_TICKET / KNOWLEDGE / CHAT / UNCLEAR
+     */
+    private String intentType;
 }

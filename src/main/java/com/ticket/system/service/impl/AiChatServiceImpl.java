@@ -2,6 +2,8 @@ package com.ticket.system.service.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ticket.system.ai.tools.DateParserTool;
+import com.ticket.system.ai.tools.KnowledgeRetrievalTool;
 import com.ticket.system.ai.tools.StationTools;
 import com.ticket.system.ai.tools.TicketTools;
 import com.ticket.system.ai.tools.TrainTools;
@@ -29,11 +31,14 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static com.ticket.system.ai.AiPrompt.INTENT_PROMPT;
+import static com.ticket.system.ai.AiPrompt.CHAT_PROMPT;
+import static com.ticket.system.ai.AiPrompt.KNOWLEDGE_PROMPT;
 
 /**
  * AI 聊天服务实现
@@ -56,6 +61,8 @@ public class AiChatServiceImpl implements AiChatService {
     private final StationTools stationTools;
     private final TrainTools trainTools;
     private final TicketTools ticketTools;
+    private final DateParserTool dateParserTool;
+    private final KnowledgeRetrievalTool knowledgeRetrievalTool;
 
     /**
      * 会话过期时间（秒）- 30分钟
@@ -86,43 +93,57 @@ public class AiChatServiceImpl implements AiChatService {
             userMsg.setTimestamp(LocalDateTime.now());
             history.add(userMsg);
 
-            // 4. 先识别用户意图（轻量级判断，不调用 tools，节省资源）
-            IntentResult intentResult = recognizeIntent(request.getMessage());
-            boolean isChatIntent = intentResult.intent == UserIntent.CHAT;
+            // 4. 先识别用户意图（传入历史以便上下文关联）
+            IntentResult intentResult = recognizeIntent(history);
+            UserIntent intent = intentResult.intent;
 
-            // 5. 发送消息给 AI 并获取结构化参数（使用 Tool Calling 模式）
-            // 只有在非闲聊意图时才调用 tools
-            TicketQueryParamDTO params = sendToAIAndExtractParams(history, isChatIntent);
-
-            // 6. 计算缺失参数
-            int missingCount = countMissingParams(params);
-            response.setParamMissingCount(missingCount);
-            response.setMissingParams(getMissingParamsDesc(params));
-
-            // 7. 如果启用自动查询且参数完整，查询车票
+            // 5. 根据意图类型分别处理
+            String aiTextResponse;
+            TicketQueryParamDTO params = new TicketQueryParamDTO();
             List<TicketInfoDTO> tickets = Collections.emptyList();
-            if (!isChatIntent && Boolean.TRUE.equals(request.getAutoQuery()) && missingCount == 0) {
-                tickets = queryTicketsWithParams(params);
+
+            switch (intent) {
+                case QUERY_TICKET -> {
+                    response.setIntentType("QUERY_TICKET");
+                    params = sendToAIAndExtractParams(history);
+                    int missingCount = countMissingParams(params);
+                    response.setParamMissingCount(missingCount);
+                    response.setMissingParams(getMissingParamsDesc(params));
+
+                    if (Boolean.TRUE.equals(request.getAutoQuery()) && missingCount == 0) {
+                        tickets = queryTicketsWithParams(params);
+                    }
+                    response.setTickets(tickets);
+                    aiTextResponse = generateQueryResponse(params, tickets, missingCount);
+                }
+                case KNOWLEDGE -> {
+                    response.setIntentType("KNOWLEDGE");
+                    aiTextResponse = generateKnowledgeResponse(request.getMessage(), history);
+                }
+                case CHAT -> {
+                    response.setIntentType("CHAT");
+                    aiTextResponse = generateChatResponse(request.getMessage(), history);
+                }
+                default -> {
+                    response.setIntentType("UNCLEAR");
+                    aiTextResponse = generateUnclearResponse(request.getMessage());
+                }
             }
-            response.setTickets(tickets);
 
-            // 8. 获取 AI 的文本回复（根据查询结果生成）
-            String aiTextResponse = generateTextResponse(params, tickets, isChatIntent);
-
-            // 9. 添加 AI 回复到历史
+            // 6. 添加 AI 回复到历史
             ChatMessageDTO assistantMsg = new ChatMessageDTO();
             assistantMsg.setRole("assistant");
             assistantMsg.setContent(aiTextResponse);
             assistantMsg.setTimestamp(LocalDateTime.now());
             history.add(assistantMsg);
 
-            // 10. 保存更新后的历史到 Redis
+            // 7. 保存更新后的历史到 Redis
             saveChatHistory(sessionId, history);
 
-            // 11. 设置解析出的查询参数
+            // 8. 设置解析出的查询参数
             response.setParams(params);
 
-            // 12. 设置成功响应
+            // 9. 设置成功响应
             response.setSuccess(true);
             response.setMessage(aiTextResponse);
 
@@ -137,25 +158,102 @@ public class AiChatServiceImpl implements AiChatService {
     }
 
     /**
-     * 根据查询结果生成简洁的 AI 文本回复
-     * 只返回结果提示，不显示任何查询参数信息
+     * 生成查票响应
      */
-    private String generateTextResponse(TicketQueryParamDTO params, List<TicketInfoDTO> tickets, boolean isChatIntent) {
-        // 如果是闲聊意图，返回友好问候
-        if (isChatIntent) {
-            return "您好！我是12306票务助手，很高兴为您服务。请问有什么可以帮您的？您可以告诉我出发地、目的地和日期，我来帮您查询车票。";
-        }
-
-        // 如果查询结果为空，返回友好提示
-        if (tickets == null || tickets.isEmpty()) {
-            if (countMissingParams(params) > 0) {
-                return "好的，请补充您的出行信息：" + getMissingParamsDesc(params);
+    private String generateQueryResponse(TicketQueryParamDTO params, List<TicketInfoDTO> tickets, int missingCount) {
+        if (missingCount > 0) {
+            // 参数不完整，让 AI 友好地引导
+            String prompt = String.format(
+                    "你是小铁，12306票务助手。用户想查票但没有提供完整信息：缺少 %s。用友好自然的语气问一下。",
+                    getMissingParamsDesc(params));
+            try {
+                return chatClient.prompt()
+                        .system(prompt)
+                        .user(params.getFrom() != null ? "用户说想去" + params.getFrom() : "用户还没说清楚去哪里")
+                        .call()
+                        .content();
+            } catch (Exception e) {
+                log.error("generateQueryResponse prompt error", e);
+                return "帮您查询前，还需要了解一下：您的" + getMissingParamsDesc(params) + "是？";
             }
-            return "暂未查询到符合条件的车票，您可以尝试更换出发日期或目的地。";
         }
 
-        // 有结果时，只返回简要提示，不暴露查询详情
-        return "已为您查询到 " + tickets.size() + " 个车次，请查看下方结果。";
+        if (tickets == null || tickets.isEmpty()) {
+            return "暂未查询到符合条件的车票，您可以尝试更换出发日期或目的地，或者提交候补申请～";
+        }
+
+        return "已为您查询到 " + tickets.size() + " 个车次，请查看下方列表。如需进一步筛选（最快/最便宜），告诉我就好！";
+    }
+
+    /**
+     * 生成知识问答响应
+     */
+    private String generateKnowledgeResponse(String userMessage, List<ChatMessageDTO> history) {
+        String currentDateInfo = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy年MM月dd日"));
+        String systemPrompt = KNOWLEDGE_PROMPT.replace("{currentDate}", currentDateInfo);
+
+        // 获取最近 8 条消息（4 轮对话）的上下文
+        List<Message> recentMessages = convertToSpringAiMessages(
+                history.subList(Math.max(0, history.size() - 8), history.size() - 1)
+        );
+
+        try {
+            return chatClient.prompt()
+                    .system(systemPrompt)
+                    .messages(recentMessages)
+                    .user(userMessage)
+                    .tools(knowledgeRetrievalTool)
+                    .call()
+                    .content();
+        } catch (Exception e) {
+            log.error("generateKnowledgeResponse error", e);
+            return "抱歉，我现在有点忙，稍后再问我吧～如果有紧急问题，可以拨打12306客服热线。";
+        }
+    }
+
+    /**
+     * 生成闲聊响应
+     */
+    private String generateChatResponse(String userMessage, List<ChatMessageDTO> history) {
+        String currentDateInfo = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy年MM月dd日"));
+        String systemPrompt = CHAT_PROMPT.replace("{currentDate}", currentDateInfo);
+
+        // 获取最近 8 条消息（4 轮对话）的上下文
+        List<Message> recentMessages = convertToSpringAiMessages(
+                history.subList(Math.max(0, history.size() - 8), history.size() - 1)
+        );
+
+        try {
+            return chatClient.prompt()
+                    .system(systemPrompt)
+                    .messages(recentMessages)
+                    .user(userMessage)
+                    .call()
+                    .content();
+        } catch (Exception e) {
+            log.error("generateChatResponse error", e);
+            return "你好！我是小铁，你的12306票务助手，有什么可以帮你的？";
+        }
+    }
+
+    /**
+     * 生成意图不明确响应
+     */
+    private String generateUnclearResponse(String userMessage) {
+        String prompt = """
+                你是小铁，12306票务助手。用户说了一句不太明确的话。
+                请友好地引导用户说清楚想要什么，比如"您是想查票呢，还是有其他问题？"
+                """;
+        try {
+            return chatClient.prompt()
+                    .system(prompt)
+                    .user(userMessage)
+                    .call()
+                    .content();
+        } catch (Exception e) {
+            log.error("generateUnclearResponse error", e);
+            return "您好！我是小铁，12306票务助手。我可以帮您查询车票、了解退票改签规则、候补购票等。请问有什么可以帮您的？";
+        }
     }
 
     @Override
@@ -230,6 +328,8 @@ public class AiChatServiceImpl implements AiChatService {
     private enum UserIntent {
         /** 需要查询车票 */
         QUERY_TICKET,
+        /** 票务知识问答 */
+        KNOWLEDGE,
         /** 闲聊/问候/其他 */
         CHAT,
         /** 意图不明确 */
@@ -250,20 +350,30 @@ public class AiChatServiceImpl implements AiChatService {
     }
 
     /**
-     * 第一步：识别用户意图（不调用 tools，节省资源）
+     * 第一步：识别用户意图（基于历史上下文）
      */
-    private IntentResult recognizeIntent(String userMessage) {
-
+    private IntentResult recognizeIntent(List<ChatMessageDTO> history) {
+        // 构建历史上下文
+        StringBuilder contextBuilder = new StringBuilder();
+        // 只取最近 6 条历史（3 轮对话）
+        int start = Math.max(0, history.size() - 6);
+        for (int i = start; i < history.size(); i++) {
+            ChatMessageDTO msg = history.get(i);
+            contextBuilder.append(msg.getRole()).append(": ").append(msg.getContent()).append("\n");
+        }
+        String historyContext = contextBuilder.toString();
 
         try {
             String result = chatClient.prompt()
                     .system(INTENT_PROMPT)
-                    .user(userMessage)
+                    .user("【历史上下文】\n" + historyContext + "\n【当前消息】" + history.get(history.size() - 1).getContent())
                     .call()
                     .content();
 
             if (result != null && result.contains("QUERY_TICKET")) {
                 return new IntentResult(UserIntent.QUERY_TICKET, "用户明确表示要查询车票");
+            } else if (result != null && result.contains("KNOWLEDGE")) {
+                return new IntentResult(UserIntent.KNOWLEDGE, "用户想了解票务知识");
             } else if (result != null && result.contains("CHAT")) {
                 return new IntentResult(UserIntent.CHAT, "用户在进行闲聊或问候");
             } else {
@@ -281,7 +391,7 @@ public class AiChatServiceImpl implements AiChatService {
      * 返回结构化 JSON 格式的响应
      * 注意：此方法只解析参数，不生成展示给用户的文本
      */
-    private TicketQueryParamDTO sendToAIAndExtractParams(List<ChatMessageDTO> history, boolean skipTools) {
+    private TicketQueryParamDTO sendToAIAndExtractParams(List<ChatMessageDTO> history) {
         // 只使用最后一条用户消息作为输入，避免历史消息干扰
         String lastUserMessage = "";
         for (int i = history.size() - 1; i >= 0; i--) {
@@ -291,10 +401,20 @@ public class AiChatServiceImpl implements AiChatService {
             }
         }
 
-        // 如果明确是闲聊，不需要调用 tools
-        if (skipTools) {
-            return new TicketQueryParamDTO();
+        // 获取当前日期信息，用于 AI 自动推理相对日期
+        LocalDate today = LocalDate.now();
+        String currentDateInfo = String.format("当前日期：%s（%s）",
+                today.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")),
+                today.getDayOfWeek().getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.CHINA));
+
+        // 构建最近 8 条消息的上下文
+        StringBuilder contextBuilder = new StringBuilder();
+        int start = Math.max(0, history.size() - 8);
+        for (int i = start; i < history.size(); i++) {
+            ChatMessageDTO msg = history.get(i);
+            contextBuilder.append(msg.getRole()).append(": ").append(msg.getContent()).append("\n");
         }
+        String recentContext = contextBuilder.toString();
 
         // 构建简洁的系统提示，只关注参数提取，不生成示例对话
         String systemPrompt = """
@@ -309,12 +429,10 @@ public class AiChatServiceImpl implements AiChatService {
             - timeRange: 时间偏好（morning/afternoon/evening/any），用户没明确说就设为null
             - preference: 排序偏好（fastest/cheapest/direct/any），用户没明确说就设为null
 
-            【日期转换规则】
-            - "今天" → 当前日期
-            - "明天" → 当前日期+1天
-            - "后天" → 当前日期+2天
-            - "4月19日" 或 "2026-04-19" → 对应日期
-            - 日期格式统一使用 YYYY-MM-DD
+            【关键规则 - 日期必须通过工具获取】
+            当用户提到"今天"、"明天"、"后天"、"大后天"、"下周三"、"4月20日"、"周一"等任何相对日期或模糊日期时，
+            必须先调用 parse_date 工具将日期转换为 YYYY-MM-DD 格式，工具返回的才是正确的日期。
+            不要自己计算日期，必须依赖 parse_date 工具的结果。
 
             【重要】
             - 只返回JSON，不要任何其他文字
@@ -328,8 +446,8 @@ public class AiChatServiceImpl implements AiChatService {
         try {
             return chatClient.prompt()
                     .system(systemPrompt)
-                    .user(lastUserMessage)
-                    .tools(stationTools, trainTools, ticketTools)
+                    .user(currentDateInfo + "\n\n【最近对话上下文】\n" + recentContext + "\n【当前消息】" + history.get(history.size() - 1).getContent())
+                    .tools(stationTools, trainTools, ticketTools, dateParserTool)
                     .call()
                     .entity(TicketQueryParamDTO.class);
         } catch (Exception e) {

@@ -110,14 +110,17 @@ order:
   expire-time: 1800000  # 30分钟订单过期时间
   auto-cancel-cron: "0 */5 * * * ?"  # 每5分钟检查一次过期订单
 
-# 车票配置
+# Redis向量搜索配置
+  vector:
+    store:
+      redis:
+        host: 192.168.171.134
+        port: 6379
+        database: 0
+
+# 知识库配置
 ticket:
-  # 预售期配置
-  presale:
-    days: 30  # 预售期天数
-    release-time: "08:00"  # 默认放票时间
-    train-release-strategy:
-      G1: "08:00"  # 高铁G1次8:00放票
-      D1: "10:00"  # 动车D1次10:00放票
-      Z1: "14:00"  # 直达Z1次14:00放票
-    return-to-inventory-minutes: 15  # 退票后返库时间（分钟）
+  knowledge:
+    base-path: data/knowledge  # 知识文档存储路径
+    chunk-size: 500  # 文本分块大小（字符数）
+    chunk-overlap: 50  # 块重叠大小

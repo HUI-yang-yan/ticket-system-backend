@@ -44,4 +44,22 @@ public interface TrainSegmentStockMapper {
 
     void insertBatch(List<TrainSegmentStock> trainSegmentStocks);
 
+    int reduceSegmentStock(@Param("trainId") Long trainId,
+                          @Param("departureDate") LocalDate departureDate,
+                          @Param("seatType") String seatType,
+                          @Param("startIndex") Integer startIndex,
+                          @Param("endIndex") Integer endIndex);
+
+    Integer checkSegmentStock(@Param("trainId") Long trainId,
+                              @Param("departureDate") LocalDate departureDate,
+                              @Param("seatType") String seatType,
+                              @Param("startIndex") Integer startIndex,
+                              @Param("endIndex") Integer endIndex);
+
+    int restoreSegmentStock(@Param("trainId") Long trainId,
+                            @Param("departureDate") LocalDate departureDate,
+                            @Param("seatType") String seatType,
+                            @Param("startIndex") Integer startIndex,
+                            @Param("endIndex") Integer endIndex);
+
 }
