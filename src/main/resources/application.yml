@@ -58,7 +58,7 @@ spring:
   # 文件上传配置
   servlet:
     multipart:
-      max-file-size: 10MB
+      max-file-size: 50MB
       max-request-size: 100MB
   data:
     redis:

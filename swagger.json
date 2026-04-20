@@ -24,6 +24,9 @@
     "name" : "列车管理",
     "description" : "列车信息查询、添加、修改、删除"
   }, {
+    "name" : "语音识别",
+    "description" : "语音识别、AI 对话（多模态）"
+  }, {
     "name" : "AI助手",
     "description" : "智能问答、订单查询、票务咨询、聊天会话管理"
   }, {
@@ -1058,6 +1061,149 @@
         }
       }
     },
+    "/ai/voice" : {
+      "post" : {
+        "tags" : [ "语音识别" ],
+        "summary" : "语音识别对话",
+        "description" : "上传语音文件，自动识别内容并返回 AI 对话结果",
+        "operationId" : "voiceChat",
+        "parameters" : [ {
+          "name" : "sessionId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "autoQuery",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean",
+            "default" : true
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "multipart/form-data" : {
+              "schema" : {
+                "required" : [ "audio" ],
+                "type" : "object",
+                "properties" : {
+                  "audio" : {
+                    "type" : "string",
+                    "format" : "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultAiChatResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ai/voice/stream" : {
+      "post" : {
+        "tags" : [ "语音识别" ],
+        "summary" : "语音识别流式对话",
+        "description" : "上传语音文件，识别后流式返回 AI 对话结果",
+        "operationId" : "voiceChatStream",
+        "parameters" : [ {
+          "name" : "sessionId",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "name" : "autoQuery",
+          "in" : "query",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean",
+            "default" : true
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "multipart/form-data" : {
+              "schema" : {
+                "required" : [ "audio" ],
+                "type" : "object",
+                "properties" : {
+                  "audio" : {
+                    "type" : "string",
+                    "format" : "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "text/event-stream" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "type" : "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ai/voice/recognize" : {
+      "post" : {
+        "tags" : [ "语音识别" ],
+        "summary" : "仅语音识别",
+        "description" : "上传语音文件，仅返回识别出的文字内容",
+        "operationId" : "recognizeOnly",
+        "requestBody" : {
+          "content" : {
+            "multipart/form-data" : {
+              "schema" : {
+                "required" : [ "audio" ],
+                "type" : "object",
+                "properties" : {
+                  "audio" : {
+                    "type" : "string",
+                    "format" : "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ResultMapStringString"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/ai/ticket/consult" : {
       "post" : {
         "tags" : [ "AI助手" ],
@@ -1186,6 +1332,39 @@
               "*/*" : {
                 "schema" : {
                   "$ref" : "#/components/schemas/ResultAiChatResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ai/chat/stream" : {
+      "post" : {
+        "tags" : [ "AI助手" ],
+        "summary" : "流式聊天接口",
+        "description" : "SSE流式响应，适合前端逐字展示AI回复",
+        "operationId" : "chatStream",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AiChatRequestDTO"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK",
+            "content" : {
+              "text/event-stream" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "type" : "string"
+                  }
                 }
               }
             }
@@ -2670,10 +2849,10 @@
             "type" : "string",
             "format" : "date-time"
           },
-          "cityName" : {
+          "fullAddress" : {
             "type" : "string"
           },
-          "fullAddress" : {
+          "cityName" : {
             "type" : "string"
           }
         }
@@ -3396,12 +3575,12 @@
             "type" : "string",
             "format" : "date-time"
           },
-          "expired" : {
-            "type" : "boolean"
-          },
           "remainingPayTime" : {
             "type" : "integer",
             "format" : "int64"
+          },
+          "expired" : {
+            "type" : "boolean"
           }
         }
       },
@@ -3439,43 +3618,6 @@
           "type" : {
             "type" : "integer",
             "format" : "int32"
-          }
-        }
-      },
-      "ResultMapStringString" : {
-        "type" : "object",
-        "properties" : {
-          "code" : {
-            "type" : "integer",
-            "format" : "int32"
-          },
-          "message" : {
-            "type" : "string"
-          },
-          "data" : {
-            "type" : "object",
-            "additionalProperties" : {
-              "type" : "string"
-            }
-          },
-          "timestamp" : {
-            "type" : "integer",
-            "format" : "int64"
-          }
-        }
-      },
-      "AiChatRequestDTO" : {
-        "required" : [ "message" ],
-        "type" : "object",
-        "properties" : {
-          "message" : {
-            "type" : "string"
-          },
-          "sessionId" : {
-            "type" : "string"
-          },
-          "autoQuery" : {
-            "type" : "boolean"
           }
         }
       },
@@ -3548,6 +3690,43 @@
           },
           "preference" : {
             "type" : "string"
+          }
+        }
+      },
+      "ResultMapStringString" : {
+        "type" : "object",
+        "properties" : {
+          "code" : {
+            "type" : "integer",
+            "format" : "int32"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "data" : {
+            "type" : "object",
+            "additionalProperties" : {
+              "type" : "string"
+            }
+          },
+          "timestamp" : {
+            "type" : "integer",
+            "format" : "int64"
+          }
+        }
+      },
+      "AiChatRequestDTO" : {
+        "required" : [ "message" ],
+        "type" : "object",
+        "properties" : {
+          "message" : {
+            "type" : "string"
+          },
+          "sessionId" : {
+            "type" : "string"
+          },
+          "autoQuery" : {
+            "type" : "boolean"
           }
         }
       },
@@ -3892,26 +4071,26 @@
               "type" : "string"
             }
           },
-          "nonRefundableCount" : {
+          "refundableCount" : {
             "type" : "integer",
             "format" : "int32"
+          },
+          "partialRefund" : {
+            "type" : "boolean"
+          },
+          "totalFeeDisplay" : {
+            "type" : "string"
+          },
+          "totalRefundDisplay" : {
+            "type" : "string"
           },
           "totalTicketCount" : {
             "type" : "integer",
             "format" : "int32"
           },
-          "totalRefundDisplay" : {
-            "type" : "string"
-          },
-          "refundableCount" : {
+          "nonRefundableCount" : {
             "type" : "integer",
             "format" : "int32"
-          },
-          "totalFeeDisplay" : {
-            "type" : "string"
-          },
-          "partialRefund" : {
-            "type" : "boolean"
           }
         }
       },

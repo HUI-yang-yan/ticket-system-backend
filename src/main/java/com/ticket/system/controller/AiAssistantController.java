@@ -13,7 +13,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Flux;
 
 import java.util.List;
 import java.util.Map;
@@ -46,6 +48,18 @@ public class AiAssistantController {
 
         AiChatResponseDTO response = aiChatService.chat(request);
         return Result.success(response);
+    }
+
+    /**
+     * 流式聊天接口 - SSE 响应
+     */
+    @PostMapping(value = "/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @Operation(summary = "流式聊天接口", description = "SSE流式响应，适合前端逐字展示AI回复")
+    public Flux<String> chatStream(@RequestBody AiChatRequestDTO request) {
+        log.info("AI chat stream request - sessionId: {}, message: {}, autoQuery: {}",
+                request.getSessionId(), request.getMessage(), request.getAutoQuery());
+
+        return aiChatService.chatStream(request);
     }
 
     /**

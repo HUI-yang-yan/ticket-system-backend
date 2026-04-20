@@ -51,12 +51,14 @@ public class RefundRuleInfo {
         long hours = DateUtil.hoursBetween(new Date(), departureTime);
 
         // 根据规则计算
-        if (hours >= hoursBeforeDeparture) {
+        if (hoursBeforeDeparture == null || hours >= hoursBeforeDeparture) {
             // 符合退款条件
             calculation.setRefundable(true);
 
             // 计算退款金额
-            BigDecimal refundAmount = ticketPrice.multiply(refundRate);
+            BigDecimal refundAmount = (refundRate != null && ticketPrice != null)
+                ? ticketPrice.multiply(refundRate)
+                : (ticketPrice != null ? ticketPrice : BigDecimal.ZERO);
             calculation.setRefundAmount(refundAmount);
 
             // 计算手续费
@@ -84,8 +86,12 @@ public class RefundRuleInfo {
 
         if (fixedServiceFee != null) {
             fee = fixedServiceFee;
-        } else if (serviceFeeRate != null) {
+        } else if (serviceFeeRate != null && ticketPrice != null) {
             fee = ticketPrice.multiply(serviceFeeRate);
+        } else if (ticketPrice != null) {
+            fee = BigDecimal.ZERO;
+        } else {
+            fee = BigDecimal.ZERO;
         }
 
         // 检查最低最高限制

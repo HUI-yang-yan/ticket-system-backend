@@ -29,6 +29,8 @@ import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.stereotype.Service;
 
+import reactor.core.publisher.Flux;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -68,6 +70,154 @@ public class AiChatServiceImpl implements AiChatService {
      * 会话过期时间（秒）- 30分钟
      */
     private static final long SESSION_EXPIRE_SECONDS = 30 * 60L;
+
+    @Override
+    public Flux<String> chatStream(AiChatRequestDTO request) {
+        String sessionId = request.getSessionId();
+        if (sessionId == null || sessionId.isBlank()) {
+            sessionId = UUID.randomUUID().toString();
+        }
+
+        try {
+            // 获取历史记录
+            List<ChatMessageDTO> history = getChatHistory(sessionId);
+
+            // 添加用户消息到历史
+            ChatMessageDTO userMsg = new ChatMessageDTO();
+            userMsg.setRole("user");
+            userMsg.setContent(request.getMessage());
+            userMsg.setTimestamp(LocalDateTime.now());
+            history.add(userMsg);
+
+            // 先识别用户意图（这个可以快速阻塞获取）
+            IntentResult intentResult = recognizeIntent(history);
+            UserIntent intent = intentResult.intent;
+
+            // 根据意图构建不同的流
+            Flux<String> responseFlux;
+
+            switch (intent) {
+                case QUERY_TICKET -> {
+                    TicketQueryParamDTO params = sendToAIAndExtractParams(history);
+                    int missingCount = countMissingParams(params);
+                    if (Boolean.TRUE.equals(request.getAutoQuery()) && missingCount == 0) {
+                        List<TicketInfoDTO> tickets = queryTicketsWithParams(params);
+                        responseFlux = generateQueryResponseStream(params, tickets, missingCount);
+                    } else {
+                        responseFlux = generateQueryResponseStream(params, null, missingCount);
+                    }
+                }
+                case KNOWLEDGE -> responseFlux = generateKnowledgeResponseStream(request.getMessage(), history);
+                case CHAT -> responseFlux = generateChatResponseStream(request.getMessage(), history);
+                default -> responseFlux = generateUnclearResponseStream(request.getMessage());
+            }
+
+            // 保存用户消息到历史（异步，不阻塞流）
+            saveChatHistory(sessionId, history);
+
+            return responseFlux;
+
+        } catch (Exception e) {
+            log.error("AI chat stream error", e);
+            return Flux.just("处理失败: " + e.getMessage());
+        }
+    }
+
+    /**
+     * 生成查票响应（流式）
+     */
+    private Flux<String> generateQueryResponseStream(TicketQueryParamDTO params, List<TicketInfoDTO> tickets, int missingCount) {
+        if (missingCount > 0) {
+            String prompt = String.format(
+                    "你是小铁，12306票务助手。用户想查票但没有提供完整信息：缺少 %s。用友好自然的语气问一下。",
+                    getMissingParamsDesc(params));
+            try {
+                return chatClient.prompt()
+                        .system(prompt)
+                        .user(params.getFrom() != null ? "用户说想去" + params.getFrom() : "用户还没说清楚去哪里")
+                        .stream()
+                        .content();
+            } catch (Exception e) {
+                log.error("generateQueryResponseStream prompt error", e);
+                return Flux.just("帮您查询前，还需要了解一下：您的" + getMissingParamsDesc(params) + "是？");
+            }
+        }
+
+        if (tickets == null || tickets.isEmpty()) {
+            return Flux.just("暂未查询到符合条件的车票，您可以尝试更换出发日期或目的地，或者提交候补申请～");
+        }
+
+        return Flux.just("已为您查询到 " + tickets.size() + " 个车次，请查看下方列表。如需进一步筛选（最快/最便宜），告诉我就好！");
+    }
+
+    /**
+     * 生成知识问答响应（流式）
+     */
+    private Flux<String> generateKnowledgeResponseStream(String userMessage, List<ChatMessageDTO> history) {
+        String currentDateInfo = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy年MM月dd日"));
+        String systemPrompt = KNOWLEDGE_PROMPT.replace("{currentDate}", currentDateInfo);
+
+        List<Message> recentMessages = convertToSpringAiMessages(
+                history.subList(Math.max(0, history.size() - 8), history.size() - 1)
+        );
+
+        try {
+            return chatClient.prompt()
+                    .system(systemPrompt)
+                    .messages(recentMessages)
+                    .user(userMessage)
+                    .tools(knowledgeRetrievalTool)
+                    .stream()
+                    .content();
+        } catch (Exception e) {
+            log.error("generateKnowledgeResponseStream error", e);
+            return Flux.just("抱歉，我现在有点忙，稍后再问我吧～如果有紧急问题，可以拨打12306客服热线。");
+        }
+    }
+
+    /**
+     * 生成闲聊响应（流式）
+     */
+    private Flux<String> generateChatResponseStream(String userMessage, List<ChatMessageDTO> history) {
+        String currentDateInfo = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy年MM月dd日"));
+        String systemPrompt = CHAT_PROMPT.replace("{currentDate}", currentDateInfo);
+
+        List<Message> recentMessages = convertToSpringAiMessages(
+                history.subList(Math.max(0, history.size() - 8), history.size() - 1)
+        );
+
+        try {
+            return chatClient.prompt()
+                    .system(systemPrompt)
+                    .messages(recentMessages)
+                    .user(userMessage)
+                    .stream()
+                    .content();
+        } catch (Exception e) {
+            log.error("generateChatResponseStream error", e);
+            return Flux.just("你好！我是小铁，你的12306票务助手，有什么可以帮你的？");
+        }
+    }
+
+    /**
+     * 生成意图不明确响应（流式）
+     */
+    private Flux<String> generateUnclearResponseStream(String userMessage) {
+        String prompt = """
+                你是小铁，12306票务助手。用户说了一句不太明确的话。
+                请友好地引导用户说清楚想要什么，比如"您是想查票呢，还是有其他问题？"
+                """;
+        try {
+            return chatClient.prompt()
+                    .system(prompt)
+                    .user(userMessage)
+                    .stream()
+                    .content();
+        } catch (Exception e) {
+            log.error("generateUnclearResponseStream error", e);
+            return Flux.just("您好！我是小铁，12306票务助手。我可以帮您查询车票、了解退票改签规则、候补购票等。请问有什么可以帮您的？");
+        }
+    }
 
     @Override
     public AiChatResponseDTO chat(AiChatRequestDTO request) {
@@ -417,6 +567,8 @@ public class AiChatServiceImpl implements AiChatService {
         String recentContext = contextBuilder.toString();
 
         // 构建简洁的系统提示，只关注参数提取，不生成示例对话
+        // 注意：JSON示例中的大括号需要转义，避免被StringTemplate解析为模板变量
+        String jsonExample = "\\{\"from\":\"城市\",\"to\":\"城市\",\"date\":\"YYYY-MM-DD\",\"timeRange\":\"any\",\"preference\":\"any\"\\}";
         String systemPrompt = """
             你是一个12306票务助手的参数提取专家。
 
@@ -439,9 +591,8 @@ public class AiChatServiceImpl implements AiChatService {
             - 如果参数不确定，设为 null（不要用 "any" 或其他占位符）
             - 参数必须是完整的查询条件
 
-            返回格式：
-            {"from":"城市","to":"城市","date":"YYYY-MM-DD","timeRange":"any","preference":"any"}
-            """;
+            返回格式示例：
+            """ + jsonExample;
 
         try {
             return chatClient.prompt()
