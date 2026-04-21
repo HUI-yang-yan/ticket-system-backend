@@ -122,5 +122,5 @@ order:
 ticket:
   knowledge:
     base-path: data/knowledge  # 知识文档存储路径
-    chunk-size: 500  # 文本分块大小（字符数）
-    chunk-overlap: 50  # 块重叠大小
+    chunk-size: 500  # 文本分块大小（token估算，中文1字≈1token，英文1词≈0.5token）
+    chunk-overlap: 50  # 块重叠大小（token估算，优先按句子边界衔接）

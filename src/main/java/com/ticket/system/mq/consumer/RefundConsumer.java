@@ -2,6 +2,7 @@ package com.ticket.system.mq.consumer;
 
 import com.ticket.system.common.exception.BusinessException;
 import com.ticket.system.common.exception.ErrorCode;
+import com.ticket.system.common.util.RedisUtil;
 import com.ticket.system.entity.Order;
 import com.ticket.system.entity.Payment;
 import com.ticket.system.entity.TicketInventory;
@@ -22,6 +23,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.concurrent.TimeUnit;
 
 @Component
@@ -44,6 +46,8 @@ public class RefundConsumer {
     private TrainStationMapper trainStationMapper;
     @Autowired
     private TrainSegmentStockMapper trainSegmentStockMapper;
+    @Autowired
+    private RedisUtil redisUtil;
 
     @RabbitListener(queues = "refund.queue")
     public void handleRefund(RefundMessage msg) {
@@ -114,6 +118,10 @@ public class RefundConsumer {
                     if (restoreResult > 0) {
                         log.info("退票区段库存已恢复: orderId={}, trainId={}, seatType={}, departureIndex={}, arrivalIndex={}",
                                 orderId, order.getTrainId(), order.getSeatType(), departureIndex, arrivalIndex);
+
+                        // 清理相关 Redis 缓存，确保查询到最新库存
+                        invalidateTicketCache(order.getTrainId(), order.getDepartureDate().toLocalDate(),
+                                order.getSeatType(), departureIndex, arrivalIndex);
                     }
                 }
             } catch (Exception e) {
@@ -143,6 +151,23 @@ public class RefundConsumer {
             refundProducer.sendDelay(msg.nextRetry());
         } catch (BusinessException businessException) {
             log.info("需要人工处理: {}",businessException.getMessage());
+        }
+    }
+
+    /**
+     * 清理票务查询缓存
+     * 确保退款后余票查询能立即看到最新库存
+     */
+    private void invalidateTicketCache(Long trainId, LocalDate departureDate, String seatType,
+                                       Integer departureIndex, Integer arrivalIndex) {
+        try {
+            // 缓存 key 格式: ticket:stock:{trainId}:{date}:{seatType}:{startIndex}-{endIndex}
+            String cacheKey = String.format("ticket:stock:%d:%s:%s:%d-%d",
+                    trainId, departureDate, seatType, departureIndex, arrivalIndex);
+            redisUtil.delete(cacheKey);
+            log.info("已清理票务缓存: key={}", cacheKey);
+        } catch (Exception e) {
+            log.warn("清理票务缓存失败", e);
         }
     }
 }

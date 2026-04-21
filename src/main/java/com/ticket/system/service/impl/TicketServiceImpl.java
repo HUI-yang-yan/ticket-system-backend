@@ -315,6 +315,8 @@ public class TicketServiceImpl implements TicketService {
     @Transactional
     public boolean purchaseTicket(Long trainId, Long userId, String departureDate, String seatType,
                                    Long startStationId, Long endStationId) {
+        LocalDate date = LocalDate.parse(departureDate);
+
         // 1. 获取分布式锁（按车次+日期+座位类型，防止同一座位类型超卖）
         String lockKey = RedisConstant.TICKET_LOCK_PREFIX + trainId + ":" + departureDate + ":" + seatType;
         String lockValue = UUID.randomUUID().toString();
@@ -324,38 +326,72 @@ public class TicketServiceImpl implements TicketService {
                 throw new BusinessException(ErrorCode.SYSTEM_ERROR.getCode(), "系统繁忙，请稍后重试");
             }
 
-            // 2. 查询当前库存（FOR UPDATE 行锁）
-            TicketInventory inventory = ticketInventoryMapper.selectForUpdate(trainId, seatType);
-            if (inventory == null) {
-                throw new BusinessException(ErrorCode.STOCK_NOT_ENOUGH.getCode(), "票务信息不存在");
+            // 2. 查询出发站和目的站的索引
+            TrainStation startStation = trainStationMapper.selectByTrainAndStation(trainId, startStationId);
+            TrainStation endStation = trainStationMapper.selectByTrainAndStation(trainId, endStationId);
+            if (startStation == null || endStation == null) {
+                throw new BusinessException(ErrorCode.PARAM_ERROR.getCode(), "车站信息不存在");
+            }
+            Integer startIndex = startStation.getStationIndex();
+            Integer endIndex = endStation.getStationIndex();
+
+            // 3. Redis 原子扣减（第一层入口拦截）
+            String redisKey = String.format("ticket:stock:%d:%s:%s:%d-%d",
+                    trainId, departureDate, seatType, startIndex, endIndex);
+            boolean redis扣减成功 = false;
+            Long remaining = null;
+
+            if (redisUtil.hasKey(redisKey)) {
+                // 缓存存在，原子扣减
+                remaining = redisUtil.decrement(redisKey, 1);
+                if (remaining != null && remaining >= 0) {
+                    redis扣减成功 = true;
+                } else if (remaining != null && remaining < 0) {
+                    // 库存已罄，加回去
+                    redisUtil.increment(redisKey, 1);
+                    throw new BusinessException(ErrorCode.STOCK_NOT_ENOUGH.getCode(), "余票不足");
+                }
+            } else {
+                // 缓存不存在，查数据库后初始化再扣减
+                Integer available = trainSegmentStockMapper.selectMinStock(trainId, date, seatType, startIndex, endIndex);
+                if (available == null || available <= 0) {
+                    throw new BusinessException(ErrorCode.STOCK_NOT_ENOUGH.getCode(), "余票不足");
+                }
+                redisUtil.set(redisKey, available - 1, 5, TimeUnit.MINUTES);
+                remaining = (long) (available - 1);
+                redis扣减成功 = true;
             }
 
-            // 3. 检查库存是否充足
-            if (inventory.getAvailableCount() <= 0) {
-                throw new BusinessException(ErrorCode.STOCK_NOT_ENOUGH.getCode(), "库存不足");
+            try {
+                // 4. 数据库层扣减（第二层：UPDATE + stock > 0 条件，原子操作）
+                int updated = trainSegmentStockMapper.reduceSegmentStock(
+                        trainId, date, seatType, startIndex, endIndex);
+                if (updated == 0) {
+                    // 数据库扣减失败（可能 stock 已经为 0），Redis 补偿
+                    if (redis扣减成功) {
+                        redisUtil.increment(redisKey, 1);
+                    }
+                    throw new BusinessException(ErrorCode.STOCK_NOT_ENOUGH.getCode(), "余票不足");
+                }
+
+                // 5. 清理座位锁定信息
+                String seatLockKey = RedisConstant.TICKET_SEAT_PREFIX + "lock:" + trainId + ":" + departureDate + ":" + userId;
+                redisUtil.delete(seatLockKey);
+
+                log.info("购票成功：trainId={}, userId={}, departureDate={}, seatType={}, 剩余库存={}",
+                        trainId, userId, departureDate, seatType, remaining != null ? remaining : "N/A");
+                return true;
+
+            } catch (BusinessException e) {
+                throw e;
+            } catch (Exception e) {
+                // 数据库异常时补偿 Redis
+                if (redis扣减成功) {
+                    redisUtil.increment(redisKey, 1);
+                }
+                log.error("购票异常：trainId={}, userId={}", trainId, userId, e);
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR.getCode(), "购票失败：" + e.getMessage());
             }
-
-            // 4. 扣减库存（乐观锁）
-            int updated = ticketInventoryMapper.reduceInventory(
-                    inventory.getId(),
-                    inventory.getAvailableCount() - 1,
-                    inventory.getVersion());
-            if (updated == 0) {
-                throw new BusinessException(ErrorCode.STOCK_NOT_ENOUGH.getCode(), "库存扣减失败，请重试");
-            }
-
-            // 5. 更新 Redis 缓存（设置key包含起止站信息）
-            String cacheKey = String.format("ticket:stock:%d:%s:%s:%d-%d",
-                    trainId, departureDate, seatType, startStationId, endStationId);
-            redisUtil.set(cacheKey, inventory.getAvailableCount() - 1, 5, TimeUnit.MINUTES);
-
-            // 6. 清理座位锁定信息
-            String seatLockKey = RedisConstant.TICKET_SEAT_PREFIX + "lock:" + trainId + ":" + departureDate + ":" + userId;
-            redisUtil.delete(seatLockKey);
-
-            log.info("购票成功：trainId={}, userId={}, departureDate={}, seatType={}, 剩余库存={}",
-                    trainId, userId, departureDate, seatType, inventory.getAvailableCount() - 1);
-            return true;
 
         } catch (BusinessException e) {
             throw e;

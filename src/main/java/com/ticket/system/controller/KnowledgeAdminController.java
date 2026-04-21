@@ -1,4 +1,4 @@
-package com.ticket.system.controller.admin;
+package com.ticket.system.controller;
 
 import com.ticket.system.common.result.Result;
 import com.ticket.system.entity.KnowledgeDocument;

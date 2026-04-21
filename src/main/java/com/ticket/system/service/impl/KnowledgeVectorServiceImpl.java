@@ -203,32 +203,199 @@ public class KnowledgeVectorServiceImpl implements KnowledgeVectorService {
         }
     }
 
+    // ==================== 语义分块实现 ====================
+
+    /**
+     * 语义分块策略：
+     * 1. 先按段落拆分，保留语义边界
+     * 2. 对超大段落按句子级别拆分
+     * 3. overlap 跨语义边界（优先在句子边界切分）
+     * 4. 中文按字数估算 token（1中文≈1 token，1英文单词≈0.5 token）
+     */
     private List<String> splitIntoChunks(String content) {
+        content = content.replaceAll("\r\n", "\n").replaceAll("[ \\t]+", " ").trim();
+        if (content.isEmpty()) return List.of();
+
         List<String> chunks = new ArrayList<>();
-        String[] paragraphs = content.split("\n\n");
+        List<String> paragraphs = new ArrayList<>();
+        for (String p : content.split("\n\n+")) {
+            String trimmed = p.trim();
+            if (!trimmed.isEmpty()) paragraphs.add(trimmed);
+        }
 
         StringBuilder currentChunk = new StringBuilder();
+        int currentTokens = 0;
+
         for (String para : paragraphs) {
-            if (currentChunk.length() + para.length() + 2 <= chunkSize) {
-                if (currentChunk.length() > 0) {
-                    currentChunk.append("\n\n");
+            int paraTokens = estimateTokens(para);
+
+            // 段落本身超过 chunkSize，按句子拆分
+            if (paraTokens > chunkSize) {
+                if (currentTokens > 0) {
+                    chunks.add(currentChunk.toString());
+                    currentChunk.setLength(0);
+                    currentTokens = 0;
                 }
-                currentChunk.append(para);
-            } else {
-                if (currentChunk.length() > 0) {
+                chunks.addAll(splitParagraphBySentences(para));
+                continue;
+            }
+
+            // 加上当前段落会超出
+            if (currentTokens + paraTokens + 2 > chunkSize) {
+                if (currentTokens > 0) {
                     chunks.add(currentChunk.toString());
                 }
-                while (para.length() > chunkSize) {
-                    chunks.add(para.substring(0, chunkSize));
-                    para = para.substring(chunkSize - chunkOverlap);
+                String overlap = extractOverlapFromEnd(currentChunk.toString());
+                currentChunk.setLength(0);
+                if (!overlap.isEmpty()) {
+                    currentChunk.append(overlap);
+                    currentTokens = estimateTokens(overlap);
+                } else {
+                    currentTokens = 0;
                 }
-                currentChunk = new StringBuilder(para);
             }
+
+            if (currentChunk.length() > 0) {
+                currentChunk.append("\n\n");
+                currentTokens += 2;
+            }
+            currentChunk.append(para);
+            currentTokens += paraTokens;
         }
+
         if (currentChunk.length() > 0) {
             chunks.add(currentChunk.toString());
         }
         return chunks;
+    }
+
+    /**
+     * 估算中英混合文本的 token 数量
+     */
+    private int estimateTokens(String text) {
+        int chinese = 0, english = 0;
+        for (char c : text.toCharArray()) {
+            if (c == '\n' || c == ' ' || c == '\t') continue;
+            if (c > 0x4E00 && c < 0x9FFF) chinese++;
+            else if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) english++;
+        }
+        return chinese + (int) Math.ceil(english / 2.0);
+    }
+
+    /**
+     * 对超大段落按句子拆分，尽量在句子边界（。！？.!?）切分
+     */
+    private List<String> splitParagraphBySentences(String para) {
+        List<String> result = new ArrayList<>();
+        String[] sentences = para.split("(?<=[。！？.!?])\\s*");
+
+        StringBuilder current = new StringBuilder();
+        int currentTokens = 0;
+        boolean first = true;
+
+        for (String sentence : sentences) {
+            if (sentence.isEmpty()) continue;
+            int sentTokens = estimateTokens(sentence);
+
+            // 单句超长，按逗号/顿号再切
+            if (sentTokens > chunkSize) {
+                if (currentTokens > 0) {
+                    result.add(current.toString().trim());
+                }
+                result.addAll(splitByClause(sentence));
+                current.setLength(0);
+                currentTokens = 0;
+                first = true;
+                continue;
+            }
+
+            if (currentTokens + (first ? 0 : 1) + sentTokens > chunkSize) {
+                String chunk = current.toString().trim();
+                if (!chunk.isEmpty()) result.add(chunk);
+
+                String overlap = extractOverlapFromEnd(current.toString());
+                current.setLength(0);
+                if (!overlap.isEmpty()) {
+                    current.append(overlap);
+                    currentTokens = estimateTokens(overlap);
+                } else {
+                    currentTokens = 0;
+                }
+                first = true;
+            }
+
+            if (!first) current.append(" ");
+            current.append(sentence);
+            currentTokens += sentTokens;
+            first = false;
+        }
+
+        if (current.length() > 0) {
+            result.add(current.toString().trim());
+        }
+        return result;
+    }
+
+    /**
+     * 超长句子按中文顿号、逗号或英文逗号/分号再切分
+     */
+    private List<String> splitByClause(String sentence) {
+        List<String> result = new ArrayList<>();
+        String[] parts = sentence.split("(?<=[，,；;、])\\s*");
+
+        StringBuilder current = new StringBuilder();
+        int currentTokens = 0;
+        boolean first = true;
+
+        for (String part : parts) {
+            if (part.isEmpty()) continue;
+            int partTokens = estimateTokens(part);
+
+            if (currentTokens + (first ? 0 : 1) + partTokens > chunkSize) {
+                if (currentTokens > 0) result.add(current.toString().trim());
+                String overlap = extractOverlapFromEnd(current.toString());
+                current.setLength(0);
+                if (!overlap.isEmpty()) {
+                    current.append(overlap);
+                    currentTokens = estimateTokens(overlap);
+                } else {
+                    currentTokens = 0;
+                }
+                first = true;
+            }
+
+            if (!first) current.append("，");
+            current.append(part);
+            currentTokens += partTokens;
+            first = false;
+        }
+
+        if (current.length() > 0) result.add(current.toString().trim());
+        return result;
+    }
+
+    /**
+     * 从 chunk 末尾提取 overlap 内容，优先截取完整句子
+     */
+    private String extractOverlapFromEnd(String text) {
+        if (text == null || text.isEmpty()) return "";
+
+        String[] sentences = text.split("(?<=[。！？.!?])\\s*");
+        StringBuilder overlap = new StringBuilder();
+
+        for (int i = sentences.length - 1; i >= 0 && estimateTokens(overlap.toString()) < chunkOverlap; i--) {
+            String s = sentences[i];
+            if (s.isEmpty()) continue;
+            if (overlap.length() > 0) overlap.insert(0, " " + s);
+            else overlap.insert(0, s);
+        }
+
+        String result = overlap.toString().trim();
+        // 无句子边界时直接截取末尾
+        if (result.isEmpty() && text.length() > chunkOverlap * 2) {
+            return text.substring(text.length() - chunkOverlap * 2);
+        }
+        return result;
     }
 
     private double cosineSimilarity(float[] a, float[] b) {
